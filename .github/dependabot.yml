@@ -1,0 +1,44 @@
+# Dependabot configuration file
+# See https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    # Look for `package.json` and `lock` files in the `root` directory
+    directory: "/"
+    # Check for updates once a week (on Monday)
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # Set security updates to high priority
+    labels:
+      - "npm"
+      - "dependencies"
+    # Specify minimum version bump requirements
+    versioning-strategy: auto
+    # Group all minor and patch updates together
+    groups:
+      minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    # Allow up to 10 open pull requests at a time
+    open-pull-requests-limit: 10
+    # Specify reviewers for pull requests
+    reviewers:
+      - "owner"
+    # Specify the target branch to check
+    target-branch: "main"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "github-actions"
+      - "dependencies"
+    # Allow up to 5 open pull requests at a time
+    open-pull-requests-limit: 5 
