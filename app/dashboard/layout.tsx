@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import DashboardTopNav from './_components/dashbord-top-nav';
+import Sidebar from './_components/sidebar';
 
 // We're avoiding any headers/cookies interaction completely to prevent the error
 
@@ -11,7 +12,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     return (
       <div className="min-h-screen w-full bg-background">
         <DashboardTopNav>
-          <main className="mx-auto max-w-7xl w-full p-4 sm:p-6 lg:p-8">{children}</main>
+          <div className="flex">
+            <Sidebar />
+            <main className="flex-1 transition-all duration-500 p-4 sm:p-6 lg:p-8">{children}</main>
+          </div>
         </DashboardTopNav>
       </div>
     );

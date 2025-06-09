@@ -1,29 +1,29 @@
-'use client';
+"use client";
 
-import { Computer, Network, Zap } from 'lucide-react';
-import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
-import OrbitingCirclesComponent from '@/components/homepage/orbiting-circles';
-import Image from 'next/image';
-import { Cover } from '@/components/ui/cover';
+import { Computer, Network, Zap } from "lucide-react";
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
+import OrbitingCirclesComponent from "@/components/homepage/orbiting-circles";
+import Image from "next/image";
+import { Cover } from "@/components/ui/cover";
 
 const features = [
   {
-    name: 'Launch faster',
+    name: "Launch faster",
     description:
-      'We provide top-tier training for workers, ensuring they gain the skills needed for excellence.',
+      "We provide top-tier training for workers, ensuring they gain the skills needed for excellence.",
     icon: Zap,
   },
   {
-    name: 'Production Ready',
+    name: "Production Ready",
     description:
-      'Our training and tech solutions help companies find the perfect fit for their staffing needs.',
+      "Our training and tech solutions help companies find the perfect fit for their staffing needs.",
     icon: Computer,
   },
   {
-    name: 'Scale with confidence',
+    name: "Scale with confidence",
     description:
-      'Join hands with us to enhance your organisations capabilities.',
+      "Join hands with us to enhance your organisations capabilities.",
     icon: Network,
   },
 ];
@@ -31,22 +31,20 @@ const features = [
 // Electric highlight component
 const ElectricHighlight = ({ children }: { children: React.ReactNode }) => {
   return (
-    <motion.span
-      className="relative inline-block"
-    >
+    <motion.span className="relative inline-block">
       {children}
       <motion.span
         className="absolute inset-0 z-[-1] bg-gradient-to-r from-green-300/30 to-emerald-400/30 rounded-md"
         initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ 
-          opacity: [0, 0.4, 0], 
+        animate={{
+          opacity: [0, 0.4, 0],
           scale: [0.85, 1.05, 0.85],
         }}
-        transition={{ 
-          duration: 2, 
-          repeat: Infinity, 
-          repeatType: "loop", 
-          ease: "easeInOut" 
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          repeatType: "loop",
+          ease: "easeInOut",
         }}
       />
     </motion.span>
@@ -56,21 +54,18 @@ const ElectricHighlight = ({ children }: { children: React.ReactNode }) => {
 export default function SideBySide() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: false, amount: 0.2 });
-  
+
   return (
-    <motion.div 
-      ref={ref}
-      className="overflow-hidden bg-black py-16 w-full"
-    >
-      <style jsx global>{`
-        circle {
-          stroke: rgba(74, 222, 128, 0.2) !important;
-          stroke-width: 1px !important;
-        }
-      `}</style>
+    <motion.div ref={ref} className="overflow-hidden bg-black py-16 w-full">
+      <style>{`
+    circle {
+      stroke: rgba(74, 222, 128, 0.2) !important;
+      stroke-width: 1px !important;
+    }
+  `}</style>
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mx-auto grid max-w-2xl grid-cols-1 gap-y-12 md:gap-y-16 lg:gap-x-12 lg:max-w-none lg:grid-cols-2">
-          <motion.div 
+          <motion.div
             className="lg:pr-8 lg:pt-4"
             initial={{ opacity: 0, x: -50 }}
             animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
@@ -80,65 +75,69 @@ export default function SideBySide() {
               <motion.h2
                 className="text-3xl md:text-4xl font-semibold tracking-tight text-white"
                 initial={{ opacity: 0, y: 20 }}
-                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                animate={
+                  isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+                }
                 transition={{ duration: 0.5 }}
               >
                 Your partner in excellence
               </motion.h2>
-              <motion.dl 
+              <motion.dl
                 className="mt-10 max-w-xl space-y-8 leading-7 text-gray-300 lg:max-w-none"
                 initial={{ opacity: 0 }}
                 animate={isInView ? { opacity: 1 } : { opacity: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
                 {features.map((feature, index) => (
-                  <motion.div 
-                    key={feature.name} 
+                  <motion.div
+                    key={feature.name}
                     className="relative pl-9"
                     initial={{ opacity: 0, y: 20 }}
-                    animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                    transition={{ 
+                    animate={
+                      isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+                    }
+                    transition={{
                       duration: 0.5,
-                      delay: 0.4 + (index * 0.1),
+                      delay: 0.4 + index * 0.1,
                       type: "spring",
-                      stiffness: 100
+                      stiffness: 100,
                     }}
                   >
                     <dt className="inline font-semibold text-white mb-1 flex items-start">
                       <motion.div
                         className="absolute left-1 top-1 h-5 w-5 text-green-400"
-                        whileHover={{ 
-                          rotate: 360, 
-                          scale: 1.2, 
-                          transition: { duration: 0.5 } 
+                        whileHover={{
+                          rotate: 360,
+                          scale: 1.2,
+                          transition: { duration: 0.5 },
                         }}
                         animate={
-                          feature.name === 'Launch faster' 
-                            ? { 
+                          feature.name === "Launch faster"
+                            ? {
                                 rotate: [0, 10, -10, 0],
                                 scale: [1, 1.2, 1],
-                                transition: { 
-                                  duration: 1.5, 
-                                  repeat: Infinity, 
-                                  repeatDelay: 3
-                                }
-                              } 
+                                transition: {
+                                  duration: 1.5,
+                                  repeat: Infinity,
+                                  repeatDelay: 3,
+                                },
+                              }
                             : {}
                         }
                       >
                         <feature.icon aria-hidden="true" />
                       </motion.div>
-                      <span className="text-green-400">
-                        {feature.name}
-                      </span>
+                      <span className="text-green-400">{feature.name}</span>
                     </dt>
-                    <dd className="block text-gray-400 mt-1 pl-0">{feature.description}</dd>
+                    <dd className="block text-gray-400 mt-1 pl-0">
+                      {feature.description}
+                    </dd>
                   </motion.div>
                 ))}
               </motion.dl>
             </div>
           </motion.div>
-          
+
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
