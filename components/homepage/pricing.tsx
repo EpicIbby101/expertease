@@ -236,23 +236,23 @@ export default function Pricing() {
   // Define the pricing plans
   const plans = [
     {
-      title: 'Hobby',
-      description: 'Perfect for personal projects and learning.',
+      title: 'Basic License',
+      description: 'Perfect for small teams.',
       monthlyPrice: 0,
       yearlyPrice: 0,
-      features: ['1 Project', 'Basic Support', '500MB Storage', 'Community Access'],
+      features: ['10 Sub-Licenses', 'Basic Support', '500MB Storage', 'Community Access'],
       btnText: 'Get Started',
       popular: false,
       tier: 0,
     },
     {
-      title: 'Pro',
-      description: 'For professional developers and small teams.',
+      title: 'Pro License',
+      description: 'For larger teams.',
       monthlyPrice: 19,
       yearlyPrice: 190,
       priceId: 'price_pro', // Replace with actual Stripe price ID
       features: [
-        'Unlimited Projects',
+        '20 Sub-Licenses',
         'Priority Support',
         '10GB Storage',
         'API Access',
@@ -263,7 +263,7 @@ export default function Pricing() {
       tier: 1,
     },
     {
-      title: 'Enterprise',
+      title: 'Enterprise License',
       description: 'For large teams with advanced needs.',
       monthlyPrice: 99,
       yearlyPrice: 990,

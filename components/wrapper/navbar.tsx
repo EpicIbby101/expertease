@@ -190,7 +190,7 @@ export default function NavBar() {
           variants={logoVariants}
         >
           <Link href="/" className="text-xl font-bold text-white">
-            Titan
+            Expert Ease
           </Link>
         </motion.div>
 

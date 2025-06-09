@@ -37,10 +37,10 @@ export default function FAQ() {
               className="border border-green-900/30 rounded-lg px-6 bg-black hover:border-green-500/20 transition-all duration-200"
             >
               <AccordionTrigger className="text-white hover:text-green-400 text-lg font-medium py-4">
-                What's included in the Titan boilerplate?
+                Question 1
               </AccordionTrigger>
               <AccordionContent className="text-gray-400 pb-4">
-                Titan includes everything you need to build a modern SaaS application with Next.js 14, including authentication with Clerk, database with Supabase, UI components with Shadcn, payments with Stripe, dark mode, and more.
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
               </AccordionContent>
             </AccordionItem>
 
@@ -49,10 +49,10 @@ export default function FAQ() {
               className="border border-green-900/30 rounded-lg px-6 bg-black hover:border-green-500/20 transition-all duration-200"
             >
               <AccordionTrigger className="text-white hover:text-green-400 text-lg font-medium py-4">
-                How do I get started with Titan?
+                Question 2
               </AccordionTrigger>
               <AccordionContent className="text-gray-400 pb-4">
-                Getting started is simple. Clone the repository, install dependencies, and configure your environment variables. Follow our comprehensive documentation for detailed instructions on setup and deployment.
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
               </AccordionContent>
             </AccordionItem>
 
@@ -61,10 +61,10 @@ export default function FAQ() {
               className="border border-green-900/30 rounded-lg px-6 bg-black hover:border-green-500/20 transition-all duration-200"
             >
               <AccordionTrigger className="text-white hover:text-green-400 text-lg font-medium py-4">
-                Can I customize Titan to match my brand?
+                Question 3
               </AccordionTrigger>
               <AccordionContent className="text-gray-400 pb-4">
-                Absolutely! Titan is designed to be fully customizable. You can easily change colors, typography, and other design elements to match your brand identity. The codebase is modular and easily customizable.
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
               </AccordionContent>
             </AccordionItem>
 
@@ -73,10 +73,10 @@ export default function FAQ() {
               className="border border-green-900/30 rounded-lg px-6 bg-black hover:border-green-500/20 transition-all duration-200"
             >
               <AccordionTrigger className="text-white hover:text-green-400 text-lg font-medium py-4">
-                Is Titan suitable for production?
+                Question 4
               </AccordionTrigger>
               <AccordionContent className="text-gray-400 pb-4">
-                Yes, Titan is built for production use. All of the providers operate smoothly at high-scale. Vercel also takes care of a lot of the infrastructure for you (including DDOS protection). You shouldn't be worrying about any self-hosting until a significant amount of users are on your platform (e.g. 500,000 MAU).
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
               </AccordionContent>
             </AccordionItem>
 
@@ -85,10 +85,10 @@ export default function FAQ() {
               className="border border-green-900/30 rounded-lg px-6 bg-black hover:border-green-500/20 transition-all duration-200"
             >
               <AccordionTrigger className="text-white hover:text-green-400 text-lg font-medium py-4">
-                Do you offer support for Titan?
+                Question 5
               </AccordionTrigger>
               <AccordionContent className="text-gray-400 pb-4">
-                Yes. We offer community support through the #ask-for-help Discord channel in the <a href="https://discord.gg/Gh67NqaY" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300">Discord Server</a>.
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
               </AccordionContent>
             </AccordionItem>
           </Accordion>

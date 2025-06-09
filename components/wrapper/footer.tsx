@@ -60,21 +60,21 @@ export const Footer = () => {
               <h2
                 className={`${TITLE_TAILWIND_CLASS} tracking-tighter max-w-xl font-regular text-left`}
               >
-                Titan
+                Expert Ease
               </h2>
               <p className="text-lg max-w-lg leading-relaxed tracking-tight text-muted-foreground text-left">
-                Performant NextJS Boilerplate for Startups
+                Your partner in excellence
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-8 sm:gap-20">
               <div className="flex flex-col text-sm max-w-lg leading-relaxed tracking-tight text-muted-foreground text-left">
-                <Link
+                {/* <Link
                   href="https://x.com/_7obaid_"
                   target="_blank"
                   className="hover:text-primary transition-colors mt-2"
                 >
                   Created by @_7obaid_
-                </Link>
+                </Link> */}
                 <Button 
                   variant="outline" 
                   size="sm" 

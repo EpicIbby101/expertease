@@ -19,13 +19,13 @@ export default function Home() {
         <SideBySide />
       </section>
       
-      <section id="tech-stack" className="flex flex-col w-full justify-center items-center px-4 sm:px-6">
+      {/* <section id="tech-stack" className="flex flex-col w-full justify-center items-center px-4 sm:px-6">
         <MarketingCards />
-      </section>
+      </section> */}
       
-      <section id="security" className="w-full py-24 md:py-16">
+      {/* <section id="security" className="w-full py-24 md:py-16">
         <SecurityFeatures />
-      </section>
+      </section> */}
       
       <section id="pricing" className="flex justify-center items-center w-full py-24 md:py-16 min-h-[600px] px-4 sm:px-6">
         <div className="w-full max-w-6xl mx-auto">
@@ -43,7 +43,7 @@ export default function Home() {
         <FAQ />
       </section>
       
-      <FloatingCTA />
+      {/* <FloatingCTA /> */}
     </PageWrapper>
   );
 }

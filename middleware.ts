@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import config from './config';
 import { createServerActionClient } from '@/lib/supabase';
+import { headers } from 'next/headers';
 
 let clerkMiddleware: (arg0: (auth: any, req: any) => any) => { (arg0: any): any; new (): any },
   createRouteMatcher;
@@ -24,10 +25,12 @@ const allowedOrigins = [
   // Add more trusted domains if needed
 ];
 
-export default function middleware(req: any) {
+export default async function middleware(req: any) {
   // Handle CORS for API routes
   if (isApiRoute(req)) {
-    const origin = req.headers.get('origin');
+    // Get headers asynchronously
+    const headersList = await headers();
+    const origin = headersList.get('origin');
     
     // Create base response
     const response = NextResponse.next();

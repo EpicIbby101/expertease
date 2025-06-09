@@ -11,19 +11,19 @@ const features = [
   {
     name: 'Launch faster',
     description:
-      'Skip weeks of setup and configuration. Titan comes pre-configured with authentication, database, payments, and analytics - everything you need to launch your SaaS in days, not months.',
+      'We provide top-tier training for workers, ensuring they gain the skills needed for excellence.',
     icon: Zap,
   },
   {
     name: 'Production Ready',
     description:
-      'Built with best-in-class providers for scale - all integrated and ready to go. Enterprise-grade security with row-level protection, API rate limiting, and comprehensive authentication. No compromises on quality, security or performance.',
+      'Our training and tech solutions help companies find the perfect fit for their staffing needs.',
     icon: Computer,
   },
   {
     name: 'Scale with confidence',
     description:
-      'Built for growth from day one. Your tech stack shouldn\'t be a limiting factor. With industry-leading providers like Vercel, Supabase, and Clerk handling the infrastructure, you can focus on your product while scaling to millions of users.',
+      'Join hands with us to enhance your organisations capabilities.',
     icon: Network,
   },
 ];
@@ -83,7 +83,7 @@ export default function SideBySide() {
                 animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                 transition={{ duration: 0.5 }}
               >
-                Everything you need to ship fast
+                Your partner in excellence
               </motion.h2>
               <motion.dl 
                 className="mt-10 max-w-xl space-y-8 leading-7 text-gray-300 lg:max-w-none"

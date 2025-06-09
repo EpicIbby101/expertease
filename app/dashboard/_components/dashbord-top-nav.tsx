@@ -11,7 +11,7 @@ export default function DashboardTopNav({ children }: { children: ReactNode }) {
       <header className="flex h-14 lg:h-[60px] items-center gap-4 border-b px-6">
         <div className="flex-1">
           <Link href="/" className="text-xl font-semibold">
-            Titan
+            Expert Ease
           </Link>
         </div>
         <div className="flex justify-center items-center">
