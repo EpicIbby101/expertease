@@ -1,22 +1,23 @@
 import { NextResponse } from 'next/server';
-import config from './config';
+import appConfig from './config';
 import { createServerActionClient } from '@/lib/supabase';
 import { headers } from 'next/headers';
+import { hasRole } from '@/lib/auth';
 
 let clerkMiddleware: (arg0: (auth: any, req: any) => any) => { (arg0: any): any; new (): any },
   createRouteMatcher;
 
-if (config.auth.enabled) {
+if (appConfig.auth.enabled) {
   try {
     ({ clerkMiddleware, createRouteMatcher } = require('@clerk/nextjs/server'));
   } catch (error) {
     console.warn('Clerk modules not available. Auth will be disabled.');
-    config.auth.enabled = false;
+    appConfig.auth.enabled = false;
   }
 }
 
-const isProtectedRoute = config.auth.enabled ? createRouteMatcher(['/dashboard(.*)']) : () => false;
-const isOnboardingRoute = config.auth.enabled ? createRouteMatcher(['/onboarding']) : () => false;
+const isProtectedRoute = appConfig.auth.enabled ? createRouteMatcher(['/dashboard(.*)', '/admin(.*)']) : () => false;
+const isOnboardingRoute = appConfig.auth.enabled ? createRouteMatcher(['/onboarding']) : () => false;
 const isApiRoute = (req: any) => req.nextUrl.pathname.startsWith('/api');
 
 // List of allowed origins for CORS - Add your frontend URL and other trusted domains
@@ -56,7 +57,7 @@ export default async function middleware(req: any) {
     }
     
     // For clerk-based auth, proceed with auth check after setting CORS headers
-    if (config.auth.enabled) {
+    if (appConfig.auth.enabled) {
       return clerkMiddleware(async (auth, req) => {
         // Any additional auth checks for API routes
         return response;
@@ -67,7 +68,7 @@ export default async function middleware(req: any) {
   }
 
   // Handle non-API routes with clerk middleware if enabled
-  if (config.auth.enabled) {
+  if (appConfig.auth.enabled) {
     return clerkMiddleware(async (auth, req) => {
       const userId = auth().userId;
       const path = req.nextUrl.pathname;
@@ -108,6 +109,14 @@ export default async function middleware(req: any) {
           // CSP will be applied by next.config.js
           return NextResponse.redirect(new URL('/dashboard', req.url));
         }
+
+        // Add this new check for admin routes
+        if (path.startsWith('/admin')) {
+          const isAdmin = await hasRole('admin');
+          if (!isAdmin) {
+            return NextResponse.redirect(new URL('/unauthorized', req.url));
+          }
+        }
       }
       
       return NextResponse.next(); // CSP will be applied by next.config.js
@@ -118,9 +127,10 @@ export default async function middleware(req: any) {
   }
 }
 
-export const middlewareConfig = {
+export const config = {
   matcher: [
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     '/(api|trpc)(.*)',
+    '/admin/:path*'
   ],
 };
