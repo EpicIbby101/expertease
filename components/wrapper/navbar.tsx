@@ -15,7 +15,7 @@ import config from '@/config';
 import { UserProfile } from '../user-profile';
 import { Drawer } from '../ui/drawer';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants, Transition } from 'framer-motion';
 
 // Navigation items with sections to scroll to
 const navigationItems = [
@@ -127,32 +127,32 @@ export default function NavBar() {
   };
 
   // Animation variants
-  const navbarVariants = {
+  const navbarVariants: Variants = {
     hidden: { opacity: 0, y: -20 },
     visible: { 
       opacity: 1, 
       y: 0,
       transition: { 
         duration: 0.5, 
-        ease: "easeOut" 
+        ease: [0.25, 0.4, 0.25, 1] as Transition["ease"]
       }
     }
   };
   
-  const logoVariants = {
+  const logoVariants: Variants = {
     hidden: { opacity: 0, x: -20 },
     visible: { 
       opacity: 1, 
       x: 0,
       transition: { 
         duration: 0.5, 
-        ease: "easeOut",
+        ease: [0.25, 0.4, 0.25, 1] as Transition["ease"],
         delay: 0.2
       }
     }
   };
   
-  const navItemVariants = {
+  const navItemVariants: Variants = {
     hidden: { opacity: 0, y: -10 },
     visible: (i: number) => ({ 
       opacity: 1, 
@@ -160,18 +160,18 @@ export default function NavBar() {
       transition: { 
         duration: 0.3, 
         delay: 0.3 + (i * 0.1),
-        ease: "easeOut"
+        ease: [0.25, 0.4, 0.25, 1] as Transition["ease"]
       }
     })
   };
   
-  const underlineVariants = {
+  const underlineVariants: Variants = {
     hidden: { width: "0%" },
     visible: { 
       width: "100%", 
       transition: { 
         duration: 0.3, 
-        ease: "easeOut" 
+        ease: [0.25, 0.4, 0.25, 1] as Transition["ease"]
       }
     }
   };

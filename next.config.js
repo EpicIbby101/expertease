@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  webpack: (config, { isServer }) => {
+    // Ignore punycode deprecation warning
+    config.ignoreWarnings = [
+      { module: /node_modules\/punycode/ }
+    ];
+    return config;
+  },
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
