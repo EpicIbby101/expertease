@@ -62,13 +62,15 @@ export async function POST(req: Request) {
       return new Response('No email found', { status: 400 });
     }
 
-    // Insert user into Supabase
+    // Insert user into Supabase (use upsert to handle existing users)
     const { error } = await supabase
       .from('users')
-      .insert({
+      .upsert({
         id,
         email: primaryEmail,
         role: 'trainee' // Default role for new users
+      }, {
+        onConflict: 'id' // Update if user already exists
       });
 
     if (error) {
