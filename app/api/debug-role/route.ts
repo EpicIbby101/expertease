@@ -13,8 +13,10 @@ export async function GET() {
   
   let userRecord = null;
   let error = null;
+  let allUsers = null;
   
   if (userId) {
+    // Get the specific user
     const { data, error: dbError } = await supabase
       .from('users')
       .select('id, email, role')
@@ -23,6 +25,13 @@ export async function GET() {
     
     userRecord = data;
     error = dbError;
+    
+    // Also get all users to see what's in the table
+    const { data: allUsersData } = await supabase
+      .from('users')
+      .select('id, email, role');
+    
+    allUsers = allUsersData;
   }
   
   const role = await getUserRole();
@@ -34,6 +43,7 @@ export async function GET() {
     clerkUserId: userId,
     userRecord,
     dbError: error,
+    allUsers,
     role,
     hasSiteAdminAccess,
     hasCompanyAdminAccess,
