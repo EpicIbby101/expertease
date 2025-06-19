@@ -112,7 +112,7 @@ export default async function middleware(req: any) {
 
         // Add this new check for admin routes
         if (path.startsWith('/admin')) {
-          const isAdmin = await hasRole('admin');
+          const isAdmin = await hasRole('site_admin');
           if (!isAdmin) {
             return NextResponse.redirect(new URL('/unauthorized', req.url));
           }
