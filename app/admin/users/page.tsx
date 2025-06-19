@@ -10,11 +10,11 @@ const supabase = createClient(
 export default async function AdminUsersPage() {
   const { data: users } = await supabase
     .from('users')
-    .select('id, email, role')
+    .select('id, email, role, company_name')
     .order('created_at', { ascending: false });
 
   return (
-    <RoleGate requiredRole="admin">
+    <RoleGate requiredRole="site_admin">
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6">User Management</h1>
         <UserRoleManager users={users || []} />

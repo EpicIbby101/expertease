@@ -4,7 +4,7 @@ import { useRole } from '@/lib/hooks/useRole';
 
 interface RoleGateProps {
   children: React.ReactNode;
-  requiredRole: 'trainee' | 'instructor' | 'admin';
+  requiredRole: 'site_admin' | 'company_admin' | 'trainee';
   fallback?: React.ReactNode;
 }
 

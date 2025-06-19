@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { canManageUser } from '@/lib/auth';
 
 interface User {
   id: string;
   email: string;
-  role: 'trainee' | 'instructor' | 'admin';
+  role: 'site_admin' | 'company_admin' | 'trainee';
+  company_name?: string;
 }
 
 interface UserRoleManagerProps {
@@ -15,7 +17,7 @@ interface UserRoleManagerProps {
 export function UserRoleManager({ users }: UserRoleManagerProps) {
   const [updating, setUpdating] = useState<string | null>(null);
 
-  const updateRole = async (userId: string, newRole: 'trainee' | 'instructor' | 'admin') => {
+  const updateRole = async (userId: string, newRole: 'site_admin' | 'company_admin' | 'trainee') => {
     setUpdating(userId);
     try {
       const response = await fetch('/api/admin/update-role', {
@@ -42,6 +44,7 @@ export function UserRoleManager({ users }: UserRoleManagerProps) {
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
@@ -50,17 +53,18 @@ export function UserRoleManager({ users }: UserRoleManagerProps) {
           {users.map((user) => (
             <tr key={user.id}>
               <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{user.company_name || 'No Company'}</td>
               <td className="px-6 py-4 whitespace-nowrap">{user.role}</td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <select
                   value={user.role}
-                  onChange={(e) => updateRole(user.id, e.target.value as 'trainee' | 'instructor' | 'admin')}
+                  onChange={(e) => updateRole(user.id, e.target.value as 'site_admin' | 'company_admin' | 'trainee')}
                   disabled={updating === user.id}
                   className="rounded border p-1"
                 >
                   <option value="trainee">Trainee</option>
-                  <option value="instructor">Instructor</option>
-                  <option value="admin">Admin</option>
+                  <option value="company_admin">Company Admin</option>
+                  <option value="site_admin">Site Admin</option>
                 </select>
                 {updating === user.id && <span className="ml-2">Updating...</span>}
               </td>

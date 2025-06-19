@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { hasRole } from '@/lib/auth';
+import { hasRole, canManageUser } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 
 const supabase = createClient(
@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   // Check if the requester is an admin
-  const isAdmin = await hasRole('admin');
+  const isAdmin = await hasRole('company_admin');
   if (!isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -18,6 +18,12 @@ export async function POST(request: Request) {
 
   if (!userId || !role) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  }
+
+  // Check if user can manage the target user
+  const canManage = await canManageUser(userId);
+  if (!canManage) {
+    return NextResponse.json({ error: 'Cannot manage this user' }, { status: 403 });
   }
 
   const { error } = await supabase

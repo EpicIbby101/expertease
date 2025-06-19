@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-export function useRole(requiredRole: 'trainee' | 'instructor' | 'admin') {
+export function useRole(requiredRole: 'site_admin' | 'company_admin' | 'trainee') {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

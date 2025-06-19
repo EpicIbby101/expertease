@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       .insert({
         id,
         email: primaryEmail,
-        role: 'trainee' // Default role
+        role: 'trainee' // Default role for new users
       });
 
     if (error) {
