@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import appConfig from './config';
 import { createServerActionClient } from '@/lib/supabase';
 import { headers } from 'next/headers';
-import { hasRole } from '@/lib/auth';
 
 let clerkMiddleware: (arg0: (auth: any, req: any) => any) => { (arg0: any): any; new (): any },
   createRouteMatcher;
@@ -110,13 +109,8 @@ export default async function middleware(req: any) {
           return NextResponse.redirect(new URL('/dashboard', req.url));
         }
 
-        // Add this new check for admin routes
-        if (path.startsWith('/admin')) {
-          const isAdmin = await hasRole('site_admin');
-          if (!isAdmin) {
-            return NextResponse.redirect(new URL('/unauthorized', req.url));
-          }
-        }
+        // Admin routes will be protected by the RoleGate component instead
+        // This avoids middleware issues with auth() function
       }
       
       return NextResponse.next(); // CSP will be applied by next.config.js
