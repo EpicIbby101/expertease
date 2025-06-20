@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 export async function getUserRole(): Promise<'site_admin' | 'company_admin' | 'trainee' | null> {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return null;
 
   const { data, error } = await supabase
@@ -26,7 +26,7 @@ export async function getUserRole(): Promise<'site_admin' | 'company_admin' | 't
 }
 
 export async function getUserCompany() {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return null;
 
   const { data, error } = await supabase
@@ -57,7 +57,7 @@ export async function hasRole(requiredRole: 'site_admin' | 'company_admin' | 'tr
 }
 
 export async function canManageUser(targetUserId: string) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return false;
 
   const userRole = await getUserRole();
