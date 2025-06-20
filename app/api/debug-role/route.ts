@@ -9,31 +9,21 @@ const supabase = createClient(
 );
 
 export async function GET() {
-  const { userId } = auth();
-  
-  let userRecord = null;
-  let error = null;
-  let allUsers = null;
-  
-  if (userId) {
-    // Get the specific user
-    const { data, error: dbError } = await supabase
-      .from('users')
-      .select('id, email, role')
-      .eq('id', userId)
-      .single();
-    
-    userRecord = data;
-    error = dbError;
-    
-    // Also get all users to see what's in the table
-    const { data: allUsersData } = await supabase
-      .from('users')
-      .select('id, email, role');
-    
-    allUsers = allUsersData;
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Not authenticated' });
   }
-  
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message });
+  }
+
   const role = await getUserRole();
   const hasSiteAdminAccess = await hasRole('site_admin');
   const hasCompanyAdminAccess = await hasRole('company_admin');
@@ -41,9 +31,8 @@ export async function GET() {
   
   return NextResponse.json({ 
     clerkUserId: userId,
-    userRecord,
+    userRecord: data,
     dbError: error,
-    allUsers,
     role,
     hasSiteAdminAccess,
     hasCompanyAdminAccess,

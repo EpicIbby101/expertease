@@ -69,13 +69,13 @@ export default async function middleware(req: any) {
   // Handle non-API routes with clerk middleware if enabled
   if (appConfig.auth.enabled) {
     return clerkMiddleware(async (auth, req) => {
-      const userId = auth().userId;
+      const userId = await auth().userId;
       const path = req.nextUrl.pathname;
       
       // If user is not authenticated and tries to access protected routes
       if (!userId && (isProtectedRoute(req) || isOnboardingRoute(req))) {
         // Redirect to sign-in, CSP will be applied by next.config.js
-        return auth().redirectToSignIn({ returnBackUrl: req.url });
+        return await auth().redirectToSignIn({ returnBackUrl: req.url });
       }
       
       // User is authenticated
