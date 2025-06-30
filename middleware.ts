@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import appConfig from './config';
-import { createServerActionClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 
 let clerkMiddleware: (arg0: (auth: any, req: any) => any) => { (arg0: any): any; new (): any },
@@ -18,6 +18,22 @@ if (appConfig.auth.enabled) {
 const isProtectedRoute = appConfig.auth.enabled ? createRouteMatcher(['/dashboard(.*)', '/admin(.*)']) : () => false;
 const isOnboardingRoute = appConfig.auth.enabled ? createRouteMatcher(['/onboarding']) : () => false;
 const isApiRoute = (req: any) => req.nextUrl.pathname.startsWith('/api');
+
+// Helper function to get user role
+async function getUserRole(userId: string) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  
+  const { data } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', userId)
+    .single();
+  
+  return data?.role;
+}
 
 // List of allowed origins for CORS - Add your frontend URL and other trusted domains
 const allowedOrigins = [
@@ -82,38 +98,38 @@ export default async function middleware(req: any) {
       if (userId) {
         // Check if user is trying to access the sign-in or sign-up pages
         if (path.startsWith('/sign-in') || path.startsWith('/sign-up')) {
-          // We'll use a redirect to dashboard first, then let dashboard layout handle onboarding check
-          // CSP will be applied by next.config.js
-          return NextResponse.redirect(new URL('/dashboard', req.url));
+          // Redirect to home page instead of dashboard
+          return NextResponse.redirect(new URL('/', req.url));
         }
         
-        // For dashboard access, we need to check if user has completed onboarding
-        if (path.startsWith('/dashboard')) {
-          // We'll rely on a client-side check in the Dashboard component
-          // The Dashboard component should check if the user has completed onboarding
-          // and redirect to /onboarding if needed
-          
-          // Important: We need to make sure the Dashboard component implements this check
-          // by calling the /api/user/check-onboarding endpoint
-        }
-        
-        // If user is authenticated, they can access onboarding directly
-        if (path.startsWith('/onboarding')) {
-          return NextResponse.next(); // CSP will be applied by next.config.js
-        }
-        
-        // If user is going to home page and is authenticated, redirect them to dashboard
+        // If user is going to home page and is authenticated, redirect to their dashboard
         if (path === '/') {
-          // Preserve existing headers when redirecting
-          // CSP will be applied by next.config.js
-          return NextResponse.redirect(new URL('/dashboard', req.url));
+          try {
+            const userRole = await getUserRole(userId);
+            
+            switch (userRole) {
+              case 'site_admin':
+                return NextResponse.redirect(new URL('/admin/dashboard', req.url));
+              case 'company_admin':
+                return NextResponse.redirect(new URL('/company/dashboard', req.url));
+              case 'trainee':
+                return NextResponse.redirect(new URL('/trainee/dashboard', req.url));
+              default:
+                // If no role, stay on home page
+                return NextResponse.next();
+            }
+          } catch (error) {
+            // If there's an error getting the role, stay on home page
+            return NextResponse.next();
+          }
         }
 
         // Admin routes will be protected by the RoleGate component instead
         // This avoids middleware issues with auth() function
       }
       
-      return NextResponse.next(); // CSP will be applied by next.config.js
+      // Allow unauthenticated users to access the home page
+      return NextResponse.next();
     })(req);
   } else {
     // CSP will be applied by next.config.js

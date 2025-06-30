@@ -1,3 +1,6 @@
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { createServerActionClient } from '@/lib/supabase';
 import MarketingCards from '@/components/homepage/marketing-cards';
 import Pricing from '@/components/homepage/pricing';
 import SideBySide from '@/components/homepage/side-by-side';
@@ -8,7 +11,50 @@ import FAQ from '@/components/homepage/faq';
 import HeroSection from '@/components/homepage/hero-section';
 import { SecurityFeatures } from '@/components/homepage/security-features';
 
-export default function Home() {
+export default async function HomePage() {
+  const { userId } = await auth();
+  
+  // If user is authenticated, check their role and redirect
+  if (userId) {
+    // Get user role from Supabase
+    const supabase = await createServerActionClient();
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    // If user has a role, redirect to their dashboard
+    if (user?.role) {
+      switch (user.role) {
+        case 'site_admin':
+          redirect('/admin/dashboard');
+        case 'company_admin':
+          redirect('/company/dashboard');
+        case 'trainee':
+          redirect('/trainee/dashboard');
+      }
+    }
+
+    // If no role assigned, show a message
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Welcome!</h1>
+          <p className="text-gray-600 mb-4">
+            Your account is being set up. Please contact your administrator to assign your role.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <p className="text-sm text-blue-800">
+              <strong>User ID:</strong> {userId}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show marketing page for unauthenticated users
   return (
     <PageWrapper>
       <section id="hero" className="w-full min-h-screen pt-24">
@@ -18,14 +64,6 @@ export default function Home() {
       <section id="benefits" className="flex py-24 md:py-16 w-full justify-center items-center px-4 sm:px-6">
         <SideBySide />
       </section>
-      
-      {/* <section id="tech-stack" className="flex flex-col w-full justify-center items-center px-4 sm:px-6">
-        <MarketingCards />
-      </section> */}
-      
-      {/* <section id="security" className="w-full py-24 md:py-16">
-        <SecurityFeatures />
-      </section> */}
       
       <section id="pricing" className="flex justify-center items-center w-full py-24 md:py-16 min-h-[600px] px-4 sm:px-6">
         <div className="w-full max-w-6xl mx-auto">
@@ -42,8 +80,6 @@ export default function Home() {
       <section id="faq" className="flex justify-center items-center w-full py-24 md:py-24 px-4 sm:px-6">
         <FAQ />
       </section>
-      
-      {/* <FloatingCTA /> */}
     </PageWrapper>
   );
 }

@@ -38,41 +38,41 @@ export default async function AdminUsersPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Total Users</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Total Users</CardTitle>
               <Users className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalUsers}</div>
+              <div className="text-2xl font-bold text-white">{stats.totalUsers}</div>
               <p className="text-xs text-gray-500 mt-1">All registered users</p>
             </CardContent>
           </Card>
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Site Admins</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Site Admins</CardTitle>
               <Award className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.siteAdmins}</div>
+              <div className="text-2xl font-bold text-white">{stats.siteAdmins}</div>
               <p className="text-xs text-gray-500 mt-1">System administrators</p>
             </CardContent>
           </Card>
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Company Admins</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Company Admins</CardTitle>
               <Building className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.companyAdmins}</div>
+              <div className="text-2xl font-bold text-white">{stats.companyAdmins}</div>
               <p className="text-xs text-gray-500 mt-1">Company administrators</p>
             </CardContent>
           </Card>
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Trainees</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Trainees</CardTitle>
               <TrendingUp className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.trainees}</div>
+              <div className="text-2xl font-bold text-white">{stats.trainees}</div>
               <p className="text-xs text-gray-500 mt-1">Active trainees</p>
             </CardContent>
           </Card>

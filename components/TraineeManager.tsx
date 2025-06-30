@@ -29,19 +29,24 @@ export function TraineeManager({ trainees, companyId, companyName }: TraineeMana
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const createTrainee = async () => {
+    console.log('createTrainee called with:', { email, companyId });
     if (!email || !companyId) {
+      console.log('Missing email or companyId:', { email, companyId });
       return;
     }
     
     setIsLoading(true);
     try {
+      console.log('Sending request to create trainee...');
       const response = await fetch('/api/company/create-trainee', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, companyId }),
       });
 
+      console.log('Response status:', response.status);
       const responseData = await response.json();
+      console.log('Response data:', responseData);
 
       if (!response.ok) {
         throw new Error(responseData.error || 'Failed to create trainee');
