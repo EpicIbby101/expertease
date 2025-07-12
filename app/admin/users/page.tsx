@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { RoleGate } from '../../../components/RoleGate';
 import { EnhancedUserManager } from '../../../components/EnhancedUserManager';
+import { InviteUserModal } from '../../../components/InviteUserModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building, Award, TrendingUp, UserPlus, Activity, Shield } from 'lucide-react';
+import { InviteUserButton } from '../../../components/InviteUserButton';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,12 +14,33 @@ const supabase = createClient(
 export default async function AdminUsersPage() {
   const { data: users, error } = await supabase
     .from('users')
-    .select('id, email, role, company_name, created_at')
+    .select(`
+      id, 
+      email, 
+      role, 
+      company_name, 
+      created_at,
+      first_name,
+      last_name,
+      phone,
+      job_title,
+      department,
+      is_active,
+      profile_completed,
+      last_active_at
+    `)
     .order('created_at', { ascending: false });
+
+  // Fetch companies for the invite modal
+  const { data: companies } = await supabase
+    .from('companies')
+    .select('id, name')
+    .order('name');
 
   // Debug logging
   console.log('Users data:', users);
   console.log('Users error:', error);
+  console.log('Companies data:', companies);
 
   // Calculate comprehensive stats
   const now = new Date();
@@ -33,7 +56,7 @@ export default async function AdminUsersPage() {
   };
 
   // Get unique companies
-  const companies = [...new Set(users?.map(u => u.company_name).filter(Boolean) || [])];
+  const uniqueCompanies = [...new Set(users?.map(u => u.company_name).filter(Boolean) || [])];
 
   return (
     <RoleGate requiredRole="site_admin">
@@ -45,10 +68,7 @@ export default async function AdminUsersPage() {
             <p className="text-gray-600 mt-1">Comprehensive user administration and role management</p>
           </div>
           <div className="flex gap-2">
-            <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Invite User
-            </button>
+            <InviteUserButton companies={companies || []} />
             <button className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
               <Shield className="h-4 w-4 mr-2" />
               Security Audit
@@ -151,7 +171,7 @@ export default async function AdminUsersPage() {
               </div>
             )}
             
-            <EnhancedUserManager users={users || []} companies={companies} />
+            <EnhancedUserManager users={users || []} companies={uniqueCompanies} />
           </CardContent>
         </Card>
       </div>

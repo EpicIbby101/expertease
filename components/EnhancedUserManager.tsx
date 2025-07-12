@@ -17,9 +17,18 @@ import { toast } from 'sonner';
 interface User {
   id: string;
   email: string;
-  role: 'site_admin' | 'company_admin' | 'trainee';
+  role: string;
   company_name?: string;
   created_at: string;
+  // New fields (optional for now)
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  job_title?: string;
+  department?: string;
+  is_active?: boolean;
+  profile_completed?: boolean;
+  last_active_at?: string;
 }
 
 interface EnhancedUserManagerProps {
@@ -246,29 +255,20 @@ export function EnhancedUserManager({ users, companies }: EnhancedUserManagerPro
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 <input
                   type="checkbox"
                   checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
-                  onChange={selectedUsers.size === filteredUsers.length ? clearSelection : selectAllUsers}
+                  onChange={selectAllUsers}
                   className="rounded border-gray-300"
                 />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Company
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -286,27 +286,56 @@ export function EnhancedUserManager({ users, companies }: EnhancedUserManagerPro
                   <div>
                     <div className="text-sm font-medium text-gray-900">{user.email}</div>
                     <div className="text-sm text-gray-500">
-                      Joined {new Date(user.created_at).toLocaleDateString()}
+                      {user.first_name && user.last_name 
+                        ? `${user.first_name} ${user.last_name}`
+                        : 'Name not set'
+                      }
                     </div>
+                    {user.phone && (
+                      <div className="text-xs text-gray-400">{user.phone}</div>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {user.company_name || 'No Company'}
+                  <div>
+                    <div>{user.company_name || 'No Company'}</div>
+                    {user.department && (
+                      <div className="text-xs text-gray-500">{user.department}</div>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge className={getRoleBadgeColor(user.role)}>
                     {user.role.replace('_', ' ')}
                   </Badge>
+                  {user.job_title && (
+                    <div className="text-xs text-gray-500 mt-1">{user.job_title}</div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    <span className="text-green-600">Active</span>
+                    <Badge variant={user.is_active ? "default" : "secondary"}>
+                      {user.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
                   <div className="text-xs text-gray-500">
-                    Account created
+                    {user.last_active_at 
+                      ? `Last active ${new Date(user.last_active_at).toLocaleDateString()}`
+                      : 'Never active'
+                    }
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    <Badge variant={user.profile_completed ? "default" : "secondary"}>
+                      {user.profile_completed ? 'Complete' : 'Incomplete'}
+                    </Badge>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Joined {new Date(user.created_at).toLocaleDateString()}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <select
                       value={user.role}

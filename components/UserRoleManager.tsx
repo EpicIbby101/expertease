@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { canManageUser } from '@/lib/auth';
 
 interface User {
   id: string;

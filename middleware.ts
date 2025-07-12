@@ -117,7 +117,7 @@ export default async function middleware(req: any) {
               default:
                 // If no role, stay on home page
                 return NextResponse.next();
-            }
+        }
           } catch (error) {
             // If there's an error getting the role, stay on home page
             return NextResponse.next();

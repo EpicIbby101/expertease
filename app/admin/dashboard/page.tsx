@@ -141,7 +141,7 @@ export default async function AdminDashboard() {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">System is running smoothly</p>
+                  <p className="text-sm text-black font-medium">System is running smoothly</p>
                   <p className="text-xs text-gray-500">All services operational</p>
                 </div>
                 <span className="text-xs text-gray-400">Just now</span>
@@ -149,7 +149,7 @@ export default async function AdminDashboard() {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">New user registered</p>
+                  <p className="text-sm text-black font-medium">New user registered</p>
                   <p className="text-xs text-gray-500">Trainee account created</p>
                 </div>
                 <span className="text-xs text-gray-400">2 hours ago</span>
