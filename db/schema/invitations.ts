@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, boolean, jsonb } from 'drizzle-orm/pg-core';
 import { users } from './users';
 import { companies } from './companies';
 
@@ -14,6 +14,8 @@ export const invitations = pgTable('invitations', {
   accepted_at: timestamp('accepted_at'),
   created_at: timestamp('created_at').defaultNow(),
   updated_at: timestamp('updated_at').defaultNow(),
+  // Store additional user information provided during invitation
+  user_data: jsonb('user_data'), // Stores first_name, last_name, phone, job_title, department, location
 });
 
 export type Invitation = typeof invitations.$inferSelect;

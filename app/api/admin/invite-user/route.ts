@@ -33,16 +33,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only site admins can invite users' }, { status: 403 });
     }
 
-    const { email, role, companyId } = await request.json();
+    const { 
+      email, 
+      first_name, 
+      last_name, 
+      role, 
+      companyId,
+      phone,
+      job_title,
+      department,
+      location
+    } = await request.json();
 
-    if (!email || !role) {
-      return NextResponse.json({ error: 'Email and role are required' }, { status: 400 });
+    // Validate mandatory fields
+    if (!email || !first_name || !last_name || !role) {
+      return NextResponse.json({ error: 'Email, first name, last name, and role are required' }, { status: 400 });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
+    // Validate name fields
+    if (first_name.trim().length < 2) {
+      return NextResponse.json({ error: 'First name must be at least 2 characters' }, { status: 400 });
+    }
+
+    if (last_name.trim().length < 2) {
+      return NextResponse.json({ error: 'Last name must be at least 2 characters' }, { status: 400 });
     }
 
     // Check if user already exists
@@ -75,7 +95,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // Create invitation record
+    // Create invitation record with all the user information
     const { data: invitation, error: invitationError } = await supabase
       .from('invitations')
       .insert({
@@ -85,6 +105,15 @@ export async function POST(request: NextRequest) {
         invited_by: userId,
         token,
         expires_at: expiresAt.toISOString(),
+        // Store additional user information in the invitation
+        user_data: {
+          first_name: first_name.trim(),
+          last_name: last_name.trim(),
+          phone: phone?.trim() || null,
+          job_title: job_title?.trim() || null,
+          department: department?.trim() || null,
+          location: location?.trim() || null,
+        }
       })
       .select()
       .single();
@@ -94,8 +123,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 });
     }
 
-    // Send invitation email
-    await sendInvitationEmail(email, token, role);
+    // Send invitation email with user information
+    await sendInvitationEmail(email, token, role, {
+      first_name: first_name.trim(),
+      last_name: last_name.trim(),
+      phone: phone?.trim(),
+      job_title: job_title?.trim(),
+      department: department?.trim(),
+      location: location?.trim(),
+    });
 
     return NextResponse.json({ 
       success: true, 
@@ -103,7 +139,8 @@ export async function POST(request: NextRequest) {
         id: invitation.id,
         email: invitation.email,
         role: invitation.role,
-        expires_at: invitation.expires_at
+        expires_at: invitation.expires_at,
+        user_data: invitation.user_data
       }
     });
 
@@ -113,7 +150,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendInvitationEmail(email: string, token: string, role: string) {
+async function sendInvitationEmail(
+  email: string, 
+  token: string, 
+  role: string, 
+  userData: {
+    first_name: string;
+    last_name: string;
+    phone?: string;
+    job_title?: string;
+    department?: string;
+    location?: string;
+  }
+) {
   // For now, we'll use a simple approach
   // In production, you'd integrate with a proper email service like:
   // - Resend, SendGrid, AWS SES, etc.
@@ -126,6 +175,7 @@ async function sendInvitationEmail(email: string, token: string, role: string) {
   console.log('To:', email);
   console.log('Subject: You\'ve been invited to join Expert Ease');
   console.log('Role:', role);
+  console.log('User Data:', userData);
   console.log('Invitation URL:', invitationUrl);
   console.log('========================');
 
@@ -134,12 +184,15 @@ async function sendInvitationEmail(email: string, token: string, role: string) {
   /*
   await emailService.send({
     to: email,
-    subject: 'You\'ve been invited to join Expert Ease',
+    subject: `Welcome to Expert Ease, ${userData.first_name}!`,
     template: 'invitation',
     data: {
+      firstName: userData.first_name,
+      lastName: userData.last_name,
       role,
       invitationUrl,
-      expiresIn: '7 days'
+      expiresIn: '7 days',
+      userData
     }
   });
   */
