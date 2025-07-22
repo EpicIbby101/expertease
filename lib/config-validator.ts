@@ -7,7 +7,7 @@ const requiredEnvVars = {
     'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
     'NEXT_PUBLIC_STRIPE_PRODUCT_1_PRICE_ID',
   ],
-  email: ['PLUNK_API_KEY'],
+  email: ['PLUNK_SECRET_KEY'],
   ratelimit: ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'],
 } as const;
 

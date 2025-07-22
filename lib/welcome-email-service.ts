@@ -19,8 +19,8 @@ export async function sendWelcomeEmail({ to, firstName }: SendWelcomeEmailParams
       return { success: false, error: 'Email service disabled' };
     }
 
-    if (!process.env.PLUNK_API_KEY) {
-      console.error('[EMAIL] Missing PLUNK_API_KEY environment variable');
+    if (!process.env.PLUNK_SECRET_KEY) {
+      console.error('[EMAIL] Missing PLUNK_SECRET_KEY environment variable');
       return { success: false, error: 'Missing API key' };
     }
 

@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthForApi } from '@/lib/auth';
 import { randomBytes } from 'crypto';
+import Plunk from '@plunk/node';
+import { render } from '@react-email/render';
+import * as React from 'react';
+import { InvitationEmail } from '@/lib/invitation-email';
+import config from '@/config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+const plunk = new Plunk(process.env.PLUNK_SECRET_KEY || '');
 
 export async function POST(request: NextRequest) {
   try {
@@ -124,14 +131,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Send invitation email with user information
-    await sendInvitationEmail(email, token, role, {
+    const emailResult = await sendInvitationEmail(email, token, role, {
       first_name: first_name.trim(),
       last_name: last_name.trim(),
       phone: phone?.trim(),
       job_title: job_title?.trim(),
       department: department?.trim(),
       location: location?.trim(),
+      company_id: companyId || null,
+      invited_by: userId,
     });
+
+    if (!emailResult.success) {
+      console.error('Failed to send invitation email:', emailResult.error);
+      return NextResponse.json({ error: 'Failed to send invitation email' }, { status: 500 });
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -161,39 +175,75 @@ async function sendInvitationEmail(
     job_title?: string;
     department?: string;
     location?: string;
+    company_id?: string | null;
+    invited_by: string;
   }
 ) {
-  // For now, we'll use a simple approach
-  // In production, you'd integrate with a proper email service like:
-  // - Resend, SendGrid, AWS SES, etc.
-  // - Or use Clerk's email templates if available
+  try {
+    // Skip sending if email is disabled in config
+    if (!config.email.enabled) {
+      console.log('[EMAIL] Skipping invitation email - email service is disabled in config');
+      return { success: false, error: 'Email service disabled' };
+    }
 
-  const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/accept-invitation?token=${token}`;
-  
-  // Log the invitation for now (replace with actual email sending)
-  console.log('=== INVITATION EMAIL ===');
-  console.log('To:', email);
-  console.log('Subject: You\'ve been invited to join Expert Ease');
-  console.log('Role:', role);
-  console.log('User Data:', userData);
-  console.log('Invitation URL:', invitationUrl);
-  console.log('========================');
+    if (!process.env.PLUNK_SECRET_KEY) {
+      console.error('[EMAIL] Missing PLUNK_SECRET_KEY environment variable');
+      return { success: false, error: 'Missing API key' };
+    }
 
-  // TODO: Replace with actual email sending
-  // Example with a hypothetical email service:
-  /*
-  await emailService.send({
-    to: email,
-    subject: `Welcome to Expert Ease, ${userData.first_name}!`,
-    template: 'invitation',
-    data: {
+    const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/accept-invitation?token=${token}`;
+    
+    // Get company name if available
+    let companyName = null;
+    if (userData.company_id) {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', userData.company_id)
+        .single();
+      companyName = company?.name;
+    }
+
+    // Get inviter name
+    let inviterName = null;
+    try {
+      const { data: inviter } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', userData.invited_by)
+        .single();
+      if (inviter?.first_name && inviter?.last_name) {
+        inviterName = `${inviter.first_name} ${inviter.last_name}`;
+      }
+    } catch (error) {
+      console.log('[EMAIL] Could not fetch inviter name');
+    }
+
+    // Create email component
+    const emailComponent = React.createElement(InvitationEmail, {
+      invitationUrl,
       firstName: userData.first_name,
       lastName: userData.last_name,
       role,
-      invitationUrl,
-      expiresIn: '7 days',
-      userData
-    }
-  });
-  */
+      companyName: companyName || undefined,
+      invitedBy: inviterName || undefined,
+      expiresIn: '7 days'
+    });
+
+    const htmlBody = await render(emailComponent);
+
+    console.log(`[EMAIL] Sending invitation email to ${email}`);
+    
+    const result = await plunk.emails.send({
+      to: email,
+      subject: `Welcome to Expert Ease, ${userData.first_name}!`,
+      body: htmlBody,
+    });
+
+    console.log(`[EMAIL] Invitation email sent successfully to ${email}`);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('[EMAIL] Failed to send invitation email:', error);
+    return { success: false, error };
+  }
 } 
