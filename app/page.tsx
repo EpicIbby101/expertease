@@ -20,7 +20,7 @@ export default async function HomePage() {
     const supabase = await createServerActionClient();
     const { data: user, error } = await supabase
       .from('users')
-      .select('role, email, first_name, last_name')
+      .select('role, email, first_name, last_name, created_at')
       .eq('user_id', userId)
       .single();
 
@@ -39,7 +39,13 @@ export default async function HomePage() {
                 <strong>User ID:</strong> {userId}
               </p>
               <p className="text-sm text-blue-800 mt-2">
+                <strong>Error:</strong> {error.message}
+              </p>
+              <p className="text-sm text-blue-800 mt-2">
                 <strong>Status:</strong> Setting up your account...
+              </p>
+              <p className="text-sm text-blue-800 mt-2">
+                <strong>Debug:</strong> <a href="/api/debug-user" className="text-blue-600 underline">Check debug info</a>
               </p>
             </div>
           </div>
@@ -76,6 +82,12 @@ export default async function HomePage() {
             </p>
             <p className="text-sm text-blue-800">
               <strong>Role:</strong> {user?.role || 'Not assigned'}
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Created:</strong> {user?.created_at ? new Date(user.created_at).toLocaleString() : 'Unknown'}
+            </p>
+            <p className="text-sm text-blue-800 mt-2">
+              <strong>Debug:</strong> <a href="/api/debug-user" className="text-blue-600 underline">Check debug info</a>
             </p>
           </div>
         </div>
