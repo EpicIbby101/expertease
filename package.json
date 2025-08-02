@@ -20,6 +20,7 @@
     "db:rls": "tsx db/apply-rls.ts"
   },
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.1.6",
     "@clerk/nextjs": "^5.0.7",
     "@clerk/themes": "^2.2.20",
     "@dnd-kit/core": "^6.1.0",

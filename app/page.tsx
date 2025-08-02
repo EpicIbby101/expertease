@@ -16,13 +16,36 @@ export default async function HomePage() {
   
   // If user is authenticated, check their role and redirect
   if (userId) {
-    // Get user role from Supabase
+    // Get user role from Supabase using Clerk user_id
     const supabase = await createServerActionClient();
-    const { data: user } = await supabase
+    const { data: user, error } = await supabase
       .from('users')
-      .select('role')
-      .eq('id', userId)
+      .select('role, email, first_name, last_name')
+      .eq('user_id', userId)
       .single();
+
+    if (error) {
+      console.error('Error fetching user role:', error);
+      // If user doesn't exist in Supabase yet, show setup message
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Welcome!</h1>
+            <p className="text-gray-600 mb-4">
+              Your account is being set up. Please wait a moment and refresh the page.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <p className="text-sm text-blue-800">
+                <strong>User ID:</strong> {userId}
+              </p>
+              <p className="text-sm text-blue-800 mt-2">
+                <strong>Status:</strong> Setting up your account...
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     // If user has a role, redirect to their dashboard
     if (user?.role) {
@@ -47,6 +70,12 @@ export default async function HomePage() {
           <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
             <p className="text-sm text-blue-800">
               <strong>User ID:</strong> {userId}
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Email:</strong> {user?.email || 'Not found'}
+            </p>
+            <p className="text-sm text-blue-800">
+              <strong>Role:</strong> {user?.role || 'Not assigned'}
             </p>
           </div>
         </div>

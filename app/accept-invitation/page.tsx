@@ -1,330 +1,191 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useAuth, useClerk } from '@clerk/nextjs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { Mail, User, Building, Shield, Phone, Briefcase, MapPin, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-
-interface InvitationData {
-  id: string;
-  email: string;
-  role: string;
-  company_id?: string;
-  company_name?: string;
-  user_data?: {
-    first_name?: string;
-    last_name?: string;
-    phone?: string;
-    job_title?: string;
-    department?: string;
-    location?: string;
-  };
-  expires_at: string;
-}
+"use client";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useUser, useAuth } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AcceptInvitationPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useUser();
   const { isSignedIn } = useAuth();
-  const { openSignIn } = useClerk();
-  const [invitation, setInvitation] = useState<InvitationData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [step, setStep] = useState<'loading' | 'profile' | 'done'>('loading');
+  const [invitationData, setInvitationData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const token = searchParams.get('token');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [profile, setProfile] = useState({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    job_title: "",
+    department: "",
+    location: "",
+  });
 
   useEffect(() => {
-    if (!token) {
-      setError('No invitation token provided');
-      setIsLoading(false);
-      return;
-    }
+    const checkInvitationStatus = async () => {
+      try {
+        // If user is signed in, check if they have invitation metadata
+        if (isSignedIn && user) {
+          const metadata = user.publicMetadata;
+          if (metadata.role) {
+            // User has invitation metadata, show profile form
+            setInvitationData({
+              email: user.emailAddresses[0]?.emailAddress,
+              role: metadata.role as string,
+              company_id: metadata.company_id as string,
+              first_name: (metadata.first_name as string) || "",
+              last_name: (metadata.last_name as string) || "",
+              phone: (metadata.phone as string) || "",
+              job_title: (metadata.job_title as string) || "",
+              department: (metadata.department as string) || "",
+              location: (metadata.location as string) || "",
+            });
+            setProfile({
+              first_name: (metadata.first_name as string) || "",
+              last_name: (metadata.last_name as string) || "",
+              phone: (metadata.phone as string) || "",
+              job_title: (metadata.job_title as string) || "",
+              department: (metadata.department as string) || "",
+              location: (metadata.location as string) || "",
+            });
+            setStep("profile");
+            return;
+          } else {
+            // User is signed in but has no invitation metadata
+            setError("No invitation data found. Please check your invitation link.");
+            setStep("loading");
+            return;
+          }
+        }
 
-    validateInvitation();
-  }, [token]);
-
-  const validateInvitation = async () => {
-    try {
-      const response = await fetch(`/api/invitations/validate?token=${token}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Invalid or expired invitation');
-        setIsLoading(false);
-        return;
+        // If not signed in, redirect to Clerk signup
+        // Clerk will handle the invitation flow automatically
+        router.push("/sign-up");
+      } catch (err) {
+        setError("Failed to load invitation data");
+        setStep("loading");
       }
+    };
 
-      setInvitation(data.invitation);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error validating invitation:', error);
-      setError('Failed to validate invitation');
-      setIsLoading(false);
-    }
-  };
+    checkInvitationStatus();
+  }, [isSignedIn, user, router]);
 
-  const handleAcceptInvitation = async () => {
-    if (!invitation) return;
-
+  async function handleProfileSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setIsProcessing(true);
+    setError(null);
     try {
-      // If user is not signed in, redirect to sign in with the invitation token
-      if (!isSignedIn) {
-        await openSignIn?.();
+      if (!user) {
+        setError("User not authenticated. Please refresh and try again.");
         return;
       }
 
-      // Accept the invitation
-      const response = await fetch('/api/invitations/accept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+      // Update Clerk profile with basic info
+      await user.update({
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+      });
+
+      // Create user in Supabase and mark invitation as accepted
+      const response = await fetch("/api/invitations/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: invitationData.email,
+          role: invitationData.role,
+          company_id: invitationData.company_id,
+          ...profile,
+        }),
+        credentials: "include",
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to accept invitation');
-      }
-
-      toast.success('Invitation accepted successfully! Welcome to Expert Ease!');
+      if (!response.ok) throw new Error(data.error || "Failed to complete onboarding");
       
-      // Redirect to dashboard
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Error accepting invitation:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to accept invitation');
+      setStep("done");
+      toast.success("Account setup complete!");
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Failed to complete profile");
     } finally {
       setIsProcessing(false);
     }
-  };
+  }
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'site_admin':
-        return <Shield className="h-5 w-5 text-purple-600" />;
-      case 'company_admin':
-        return <Building className="h-5 w-5 text-green-600" />;
-      case 'trainee':
-        return <User className="h-5 w-5 text-orange-600" />;
-      default:
-        return <User className="h-5 w-5 text-gray-600" />;
-    }
-  };
-
-  const getRoleName = (role: string) => {
-    switch (role) {
-      case 'site_admin':
-        return 'Site Administrator';
-      case 'company_admin':
-        return 'Company Administrator';
-      case 'trainee':
-        return 'Trainee';
-      default:
-        return role;
-    }
-  };
-
-  if (isLoading) {
+  if (step === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Validating invitation...</p>
+          <p className="text-gray-600">Loading invitation...</p>
+          {error && (
+            <Card className="w-full max-w-md mt-6">
+              <CardHeader>
+                <CardTitle className="text-red-600">Error</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+                <Button onClick={() => router.push("/")} className="w-full mt-4">Go to Home</Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (!invitationData) return null;
+
+  if (step === "profile") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-6 w-6 text-red-600" />
-              <CardTitle className="text-red-600">Invalid Invitation</CardTitle>
-            </div>
+            <CardTitle>Complete Your Profile</CardTitle>
+            <CardDescription>Fill out your details to finish onboarding.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-            <Button 
-              onClick={() => router.push('/')} 
-              className="w-full mt-4"
-            >
-              Go to Home
-            </Button>
+            <form onSubmit={handleProfileSubmit} className="space-y-4">
+              <Input type="text" placeholder="First Name" value={profile.first_name} onChange={e => setProfile(p => ({ ...p, first_name: e.target.value }))} required />
+              <Input type="text" placeholder="Last Name" value={profile.last_name} onChange={e => setProfile(p => ({ ...p, last_name: e.target.value }))} required />
+              <Input type="text" placeholder="Phone" value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} />
+              <Input type="text" placeholder="Job Title" value={profile.job_title} onChange={e => setProfile(p => ({ ...p, job_title: e.target.value }))} />
+              <Input type="text" placeholder="Department" value={profile.department} onChange={e => setProfile(p => ({ ...p, department: e.target.value }))} />
+              <Input type="text" placeholder="Location" value={profile.location} onChange={e => setProfile(p => ({ ...p, location: e.target.value }))} />
+              <Button type="submit" disabled={isProcessing} className="w-full">
+                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Complete Setup
+              </Button>
+              {error && <Alert className="mt-2"><AlertDescription>{error}</AlertDescription></Alert>}
+            </form>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (!invitation) {
-    return null;
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-6 w-6 text-blue-600" />
-            </div>
-            <CardTitle className="text-2xl">You're Invited!</CardTitle>
-            <CardDescription>
-              Welcome to Expert Ease. Please review your invitation details below.
-            </CardDescription>
+  if (step === "done") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+            <CardTitle>Welcome!</CardTitle>
+            <CardDescription>Your account has been created. Redirecting...</CardDescription>
           </CardHeader>
-
-          <CardContent className="space-y-6">
-            {/* Invitation Details */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-medium text-blue-900 mb-3">Invitation Details</h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-blue-800">{invitation.email}</span>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  {getRoleIcon(invitation.role)}
-                  <span className="text-sm text-blue-800">{getRoleName(invitation.role)}</span>
-                </div>
-                
-                {invitation.company_name && (
-                  <div className="flex items-center gap-3">
-                    <Building className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm text-blue-800">{invitation.company_name}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Pre-filled User Information */}
-            {invitation.user_data && (
-              <>
-                <Separator />
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-3">Your Information</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    The following information was provided when you were invited:
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {invitation.user_data.first_name && (
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">First Name</Label>
-                        <div className="mt-1 p-2 bg-gray-50 border rounded-md">
-                          {invitation.user_data.first_name}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {invitation.user_data.last_name && (
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Last Name</Label>
-                        <div className="mt-1 p-2 bg-gray-50 border rounded-md">
-                          {invitation.user_data.last_name}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {invitation.user_data.phone && (
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Phone</Label>
-                        <div className="mt-1 p-2 bg-gray-50 border rounded-md flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          {invitation.user_data.phone}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {invitation.user_data.job_title && (
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Job Title</Label>
-                        <div className="mt-1 p-2 bg-gray-50 border rounded-md flex items-center gap-2">
-                          <Briefcase className="h-4 w-4 text-gray-400" />
-                          {invitation.user_data.job_title}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {invitation.user_data.department && (
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Department</Label>
-                        <div className="mt-1 p-2 bg-gray-50 border rounded-md">
-                          {invitation.user_data.department}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {invitation.user_data.location && (
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Location</Label>
-                        <div className="mt-1 p-2 bg-gray-50 border rounded-md flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-gray-400" />
-                          {invitation.user_data.location}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Expiration Notice */}
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                This invitation expires on {new Date(invitation.expires_at).toLocaleDateString()}. 
-                Please accept it before then.
-              </AlertDescription>
-            </Alert>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => router.push('/')}
-                className="flex-1"
-                disabled={isProcessing}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleAcceptInvitation}
-                className="flex-1"
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Processing...
-                  </>
-                ) : isSignedIn ? (
-                  'Accept Invitation'
-                ) : (
-                  'Sign In to Accept'
-                )}
-              </Button>
-            </div>
-          </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 } 

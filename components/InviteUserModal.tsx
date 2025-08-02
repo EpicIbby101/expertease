@@ -80,9 +80,10 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to send invitation');
+        // Show both error and details if present
+        throw new Error(data.error + (data.details ? `: ${data.details}` : ''));
       }
 
       toast.success('Invitation sent successfully!');
@@ -99,9 +100,9 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
       });
       onInviteSuccess();
       onClose();
-    } catch (error) {
-      console.error('Error sending invitation:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to send invitation');
+    } catch (err) {
+      // Show the full error message
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setIsLoading(false);
     }
