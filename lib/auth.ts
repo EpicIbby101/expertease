@@ -21,18 +21,18 @@ export async function getAuthForApi() {
 export async function getUserRole(): Promise<'site_admin' | 'company_admin' | 'trainee' | null> {
   try {
     const { userId } = await auth();
-  if (!userId) return null;
+    if (!userId) return null;
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', userId)
-    .single();
+    const { data, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
 
-  if (error) {
-    console.error('Error fetching user role:', error);
-    return null;
-  }
+    if (error) {
+      console.error('Error fetching user role:', error);
+      return null;
+    }
 
     return data.role as 'site_admin' | 'company_admin' | 'trainee';
   } catch (error) {
@@ -49,7 +49,7 @@ export async function getUserCompany() {
     const { data, error } = await supabase
       .from('users')
       .select('company_id, company_name')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -93,7 +93,7 @@ export async function canManageUser(targetUserId: string) {
       const { data: targetUser } = await supabase
         .from('users')
         .select('company_id')
-        .eq('id', targetUserId)
+        .eq('user_id', targetUserId)
         .single();
 
       return targetUser?.company_id === userCompany?.company_id;
