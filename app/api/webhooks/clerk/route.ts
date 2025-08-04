@@ -51,12 +51,14 @@ export async function POST(request: NextRequest) {
     console.log('Full event data:', JSON.stringify(evt.data, null, 2));
 
     if (eventType === 'user.created') {
-      const { id, email_addresses, public_metadata } = evt.data;
+      const { id, email_addresses, public_metadata, first_name, last_name } = evt.data;
       const email = email_addresses[0]?.email_address;
 
       console.log('User created event details:');
       console.log('- User ID:', id);
       console.log('- Email:', email);
+      console.log('- First Name:', first_name);
+      console.log('- Last Name:', last_name);
       console.log('- Public metadata:', JSON.stringify(public_metadata, null, 2));
 
       if (!email) {
@@ -74,8 +76,8 @@ export async function POST(request: NextRequest) {
           .insert({
             user_id: id,
             email: email,
-            first_name: (public_metadata.first_name as string) || null,
-            last_name: (public_metadata.last_name as string) || null,
+            first_name: (public_metadata.first_name as string) || first_name || null,
+            last_name: (public_metadata.last_name as string) || last_name || null,
             role: public_metadata.role as string,
             company_id: (public_metadata.company_id as string) || null,
             phone: (public_metadata.phone as string) || null,
@@ -111,7 +113,7 @@ export async function POST(request: NextRequest) {
         console.log('User created successfully from invitation:', user);
       } else {
         // Regular user signup (not from invitation)
-        console.log('Creating regular user (no invitation metadata):', { id, email });
+        console.log('Creating regular user (no invitation metadata):', { id, email, first_name, last_name });
         console.log('Public metadata was:', public_metadata);
         
         const { data: user, error: userError } = await supabase
@@ -119,6 +121,8 @@ export async function POST(request: NextRequest) {
           .insert({
             user_id: id,
             email: email,
+            first_name: first_name || null,
+            last_name: last_name || null,
             role: 'trainee', // Default role for regular signups
             is_active: true,
             profile_completed: false,
