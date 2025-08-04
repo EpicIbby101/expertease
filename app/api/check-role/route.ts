@@ -24,14 +24,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ hasAccess: false });
     }
 
-    // Get user role from database
+    // Get user role from database using Clerk user_id
     const { data, error } = await supabase
       .from('users')
       .select('role')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
     if (error || !data) {
+      console.error('Error fetching user role:', error);
       return NextResponse.json({ hasAccess: false });
     }
 
