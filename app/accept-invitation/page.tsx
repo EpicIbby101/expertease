@@ -103,11 +103,41 @@ function AcceptInvitationContent() {
     checkInvitationStatus();
   }, [isSignedIn, user, searchParams, router]);
 
-  const handleSignUp = () => {
-    // Redirect to Clerk signup with the invitation token
-    const token = searchParams.get('token');
-    const signupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/sign-up?redirect_url=${encodeURIComponent(window.location.href)}`;
-    window.location.href = signupUrl;
+  const handleSignUp = async () => {
+    try {
+      const token = searchParams.get('token');
+      if (!token) {
+        setError("Invalid invitation token");
+        return;
+      }
+
+      // Get invitation data to pre-fill the signup form
+      const response = await fetch(`/api/invitations/validate?token=${token}`);
+      const data = await response.json();
+      
+      if (!response.ok || !data.invitation) {
+        setError("Failed to load invitation data");
+        return;
+      }
+
+      // Store invitation data in localStorage for Clerk signup to access
+      localStorage.setItem('invitationData', JSON.stringify({
+        token,
+        email: data.invitation.email,
+        first_name: data.invitation.user_data?.first_name || "",
+        last_name: data.invitation.user_data?.last_name || "",
+        role: data.invitation.role,
+        company_id: data.invitation.company_id,
+        user_data: data.invitation.user_data
+      }));
+
+      // Redirect to Clerk signup with pre-filled data
+      const signupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/sign-up?redirect_url=${encodeURIComponent(window.location.href)}`;
+      window.location.href = signupUrl;
+    } catch (err) {
+      console.error('Error preparing signup:', err);
+      setError("Failed to prepare signup form");
+    }
   };
 
   async function handleProfileSubmit(e: React.FormEvent) {
@@ -201,7 +231,7 @@ function AcceptInvitationContent() {
               Create Account
             </Button>
             <p className="text-sm text-gray-500 mt-4">
-              You'll be redirected to create your account and set a password.
+              You'll be redirected to create your account and set a password. Your name and email will be pre-filled.
             </p>
           </CardContent>
         </Card>

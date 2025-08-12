@@ -1,32 +1,78 @@
-'use client';
-import config from '@/config';
-import { SignUp } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { dark } from '@clerk/themes';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+"use client";
+
+import { useEffect, useState } from "react";
+import { SignUp } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const [invitationData, setInvitationData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // If auth is disabled, show a message rather than redirecting
-  if (!config?.auth?.enabled) {
+  useEffect(() => {
+    // Check if we have invitation data in localStorage
+    const storedData = localStorage.getItem('invitationData');
+    if (storedData) {
+      try {
+        const data = JSON.parse(storedData);
+        setInvitationData(data);
+        console.log('Found invitation data:', data);
+      } catch (err) {
+        console.error('Error parsing invitation data:', err);
+      }
+    }
+    setIsLoading(false);
+  }, []);
+
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4">
-        <h2 className="text-2xl font-bold mb-4">Authentication Disabled</h2>
-        <p className="text-center text-gray-500 mb-6">
-          Authentication is currently disabled in this environment.
-        </p>
-        <Button asChild variant="outline">
-          <Link href="/">Return to Home</Link>
-        </Button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading signup form...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-w-screen justify-center my-[5rem]">
-      <SignUp appearance={{ baseTheme: dark }} />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            {invitationData ? 'Complete Your Account Setup' : 'Create Your Account'}
+          </h2>
+          {invitationData && (
+            <p className="mt-2 text-sm text-gray-600">
+              Welcome! Your invitation details have been pre-filled.
+            </p>
+          )}
+        </div>
+        
+        <SignUp 
+          appearance={{
+            elements: {
+              formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white",
+              card: "shadow-xl",
+            }
+          }}
+          redirectUrl={invitationData ? `/accept-invitation?token=${invitationData.token}` : '/dashboard'}
+          initialValues={{
+            emailAddress: invitationData?.email || "",
+            firstName: invitationData?.first_name || "",
+            lastName: invitationData?.last_name || "",
+          }}
+        />
+        
+        {invitationData && (
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              You're signing up with an invitation. After creating your password, 
+              you'll complete your profile setup.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
