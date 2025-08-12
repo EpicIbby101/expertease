@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { useUser, useAuth, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,7 +14,8 @@ function AcceptInvitationContent() {
   const router = useRouter();
   const { user } = useUser();
   const { isSignedIn } = useAuth();
-  const [step, setStep] = useState<'loading' | 'profile' | 'done'>('loading');
+  const { openSignIn } = useClerk();
+  const [step, setStep] = useState<'loading' | 'signup' | 'profile' | 'done'>('loading');
   const [invitationData, setInvitationData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -30,43 +31,53 @@ function AcceptInvitationContent() {
   useEffect(() => {
     const checkInvitationStatus = async () => {
       try {
-        // If user is signed in, check if they have invitation metadata
+        const token = searchParams.get('token');
+        
+        if (!token) {
+          setError("Invalid invitation link. Missing token.");
+          setStep("loading");
+          return;
+        }
+
+        // If user is signed in, fetch invitation data from Supabase
         if (isSignedIn && user) {
-          const metadata = user.publicMetadata;
-          if (metadata.role) {
-            // User has invitation metadata, show profile form
+          const response = await fetch(`/api/invitations/validate?token=${token}`);
+          const data = await response.json();
+          
+          if (response.ok && data.invitation) {
+            // Set invitation data from Supabase
             setInvitationData({
-              email: user.emailAddresses[0]?.emailAddress,
-              role: metadata.role as string,
-              company_id: metadata.company_id as string,
-              first_name: (metadata.first_name as string) || "",
-              last_name: (metadata.last_name as string) || "",
-              phone: (metadata.phone as string) || "",
-              job_title: (metadata.job_title as string) || "",
-              department: (metadata.department as string) || "",
-              location: (metadata.location as string) || "",
+              email: data.invitation.email,
+              role: data.invitation.role,
+              company_id: data.invitation.company_id,
+              first_name: data.invitation.user_data?.first_name || "",
+              last_name: data.invitation.user_data?.last_name || "",
+              phone: data.invitation.user_data?.phone || "",
+              job_title: data.invitation.user_data?.job_title || "",
+              department: data.invitation.user_data?.department || "",
+              location: data.invitation.user_data?.location || "",
             });
+            
             setProfile({
-              first_name: (metadata.first_name as string) || "",
-              last_name: (metadata.last_name as string) || "",
-              phone: (metadata.phone as string) || "",
-              job_title: (metadata.job_title as string) || "",
-              department: (metadata.department as string) || "",
-              location: (metadata.location as string) || "",
+              first_name: data.invitation.user_data?.first_name || "",
+              last_name: data.invitation.user_data?.last_name || "",
+              phone: data.invitation.user_data?.phone || "",
+              job_title: data.invitation.user_data?.job_title || "",
+              department: data.invitation.user_data?.department || "",
+              location: data.invitation.user_data?.location || "",
             });
+            
             setStep("profile");
             return;
           } else {
-            // User is signed in but has no invitation metadata
-            setError("No invitation data found. Please check your invitation link.");
+            setError("Invalid or expired invitation. Please contact your administrator.");
             setStep("loading");
             return;
           }
         }
 
-        // If not signed in, redirect to Clerk signup
-        // Clerk will handle the invitation flow automatically
-        router.push("/sign-up");
+        // If not signed in, show signup step
+        setStep("signup");
       } catch (err) {
         setError("Failed to load invitation data");
         setStep("loading");
@@ -74,7 +85,14 @@ function AcceptInvitationContent() {
     };
 
     checkInvitationStatus();
-  }, [isSignedIn, user, router]);
+  }, [isSignedIn, user, searchParams]);
+
+  const handleSignUp = () => {
+    // Redirect to Clerk signup with the invitation token
+    const token = searchParams.get('token');
+    const signupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/sign-up?redirect_url=${encodeURIComponent(window.location.href)}`;
+    window.location.href = signupUrl;
+  };
 
   async function handleProfileSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -139,6 +157,27 @@ function AcceptInvitationContent() {
             </Card>
           )}
         </div>
+      </div>
+    );
+  }
+
+  if (step === "signup") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CardTitle>Welcome!</CardTitle>
+            <CardDescription>You've been invited to join our platform. Please create your account to continue.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleSignUp} className="w-full">
+              Create Account
+            </Button>
+            <p className="text-sm text-gray-500 mt-4">
+              You'll be redirected to create your account and set a password.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
