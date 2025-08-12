@@ -40,8 +40,9 @@ function AcceptInvitationContent() {
           return;
         }
 
-        // If user is signed in, fetch invitation data from Supabase
+        // If user is signed in, check if they have a complete profile
         if (isSignedIn && user) {
+          // Check if user exists in Supabase and has a complete profile
           const response = await fetch(`/api/invitations/validate?token=${token}`);
           const data = await response.json();
           
@@ -70,6 +71,17 @@ function AcceptInvitationContent() {
               date_of_birth: data.invitation.user_data?.date_of_birth || "",
             });
             
+            // Check if user profile is already complete in Supabase
+            const userResponse = await fetch('/api/check-role');
+            const userData = await userResponse.json();
+            
+            if (userData.hasAccess && userData.role) {
+              // User already has a complete profile, redirect to dashboard
+              router.push('/dashboard');
+              return;
+            }
+            
+            // User exists but profile incomplete, show profile form
             setStep("profile");
             return;
           } else {
@@ -82,13 +94,14 @@ function AcceptInvitationContent() {
         // If not signed in, show signup step
         setStep("signup");
       } catch (err) {
+        console.error('Error checking invitation status:', err);
         setError("Failed to load invitation data");
         setStep("loading");
       }
     };
 
     checkInvitationStatus();
-  }, [isSignedIn, user, searchParams]);
+  }, [isSignedIn, user, searchParams, router]);
 
   const handleSignUp = () => {
     // Redirect to Clerk signup with the invitation token
@@ -134,12 +147,16 @@ function AcceptInvitationContent() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to complete onboarding");
+      if (!response.ok) {
+        console.error('API Error:', data);
+        throw new Error(data.error || "Failed to complete onboarding");
+      }
       
       setStep("done");
       toast.success("Account setup complete!");
       router.push("/dashboard");
     } catch (err: any) {
+      console.error('Profile submission error:', err);
       setError(err.message || "Failed to complete profile");
     } finally {
       setIsProcessing(false);
@@ -246,7 +263,7 @@ export default function AcceptInvitationPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
+          <div className="text-gray-600">Loading...</div>
         </div>
       </div>
     }>

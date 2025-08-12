@@ -31,14 +31,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and role are required' }, { status: 400 });
     }
 
+    console.log('Accepting invitation for user:', { userId, email, role });
+
     // Check if user already exists in Supabase
-    const { data: existingUser } = await supabase
+    const { data: existingUser, error: userCheckError } = await supabase
       .from('users')
-      .select('id')
+      .select('id, user_id, email, role')
       .eq('user_id', userId)
       .single();
 
+    if (userCheckError) {
+      console.error('Error checking if user exists:', userCheckError);
+      // If user doesn't exist, we'll create them
+    }
+
+    console.log('Existing user check result:', { existingUser, userCheckError });
+
     if (existingUser) {
+      console.log('Updating existing user:', existingUser.id);
+      
       // Update existing user with profile data
       const { data: updatedUser, error: updateError } = await supabase
         .from('users')
@@ -58,31 +69,14 @@ export async function POST(request: NextRequest) {
 
       if (updateError) {
         console.error('Error updating user:', updateError);
-        return NextResponse.json({ error: 'Failed to update user profile' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to update user profile', details: updateError.message }, { status: 500 });
       }
 
-      // Mark invitation as accepted
-      const { error: invitationError } = await supabase
-        .from('invitations')
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString(),
-        })
-        .eq('email', email)
-        .eq('status', 'pending');
-
-      if (invitationError) {
-        console.error('Error updating invitation:', invitationError);
-        // Don't fail the whole process if this fails
-      }
-
-      return NextResponse.json({ 
-        success: true, 
-        user: updatedUser,
-        message: 'Profile updated successfully'
-      });
+      console.log('User updated successfully:', updatedUser);
     } else {
-      // Create new user (this shouldn't happen with Clerk webhooks, but just in case)
+      console.log('Creating new user for invited user');
+      
+      // Create new user (this should happen for invited users)
       const { data: newUser, error: createError } = await supabase
         .from('users')
         .insert({
@@ -105,33 +99,53 @@ export async function POST(request: NextRequest) {
 
       if (createError) {
         console.error('Error creating user:', createError);
-        return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to create user', details: createError.message }, { status: 500 });
       }
 
-      // Mark invitation as accepted
-      const { error: invitationError } = await supabase
-        .from('invitations')
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString(),
-        })
-        .eq('email', email)
-        .eq('status', 'pending');
+      console.log('User created successfully:', newUser);
+    }
 
-      if (invitationError) {
-        console.error('Error updating invitation:', invitationError);
-        // Don't fail the whole process if this fails
-      }
+    // Mark invitation as accepted
+    const { error: invitationError } = await supabase
+      .from('invitations')
+      .update({
+        status: 'accepted',
+        accepted_at: new Date().toISOString(),
+      })
+      .eq('email', email)
+      .eq('status', 'pending');
 
+    if (invitationError) {
+      console.error('Error updating invitation:', invitationError);
+      // Don't fail the whole process if this fails
+    } else {
+      console.log('Invitation marked as accepted');
+    }
+
+    // Get the final user data to return
+    const { data: finalUser, error: finalUserError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (finalUserError) {
+      console.error('Error fetching final user data:', finalUserError);
       return NextResponse.json({ 
         success: true, 
-        user: newUser,
-        message: 'User created successfully'
+        message: 'Profile completed but could not fetch user data',
+        warning: 'User data may not be immediately available'
       });
     }
 
+    return NextResponse.json({ 
+      success: true, 
+      user: finalUser,
+      message: 'Profile completed successfully'
+    });
+
   } catch (error) {
     console.error('Error in accept invitation process:', error);
-    return NextResponse.json({ error: 'Failed to accept invitation' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to accept invitation', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 } 
