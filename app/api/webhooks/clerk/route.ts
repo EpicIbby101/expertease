@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
             job_title: (public_metadata.job_title as string) || null,
             department: (public_metadata.department as string) || null,
             location: (public_metadata.location as string) || null,
+            date_of_birth: (public_metadata.date_of_birth as string) || null,
             is_active: true,
             profile_completed: false,
           })

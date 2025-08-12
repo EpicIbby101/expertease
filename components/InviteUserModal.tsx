@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { X, Mail, User, Building, Shield, Plus, Phone, Briefcase, MapPin } from 'lucide-react';
+import { X, Mail, User, Building, Shield, Plus, Phone, Briefcase, MapPin, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,7 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
     job_title: '',
     department: '',
     location: '',
+    date_of_birth: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,7 +97,8 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
         phone: '', 
         job_title: '', 
         department: '', 
-        location: '' 
+        location: '',
+        date_of_birth: ''
       });
       onInviteSuccess();
       onClose();
@@ -401,6 +403,23 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
                 </div>
               </div>
 
+              {/* Date of Birth */}
+              <div>
+                <Label htmlFor="date_of_birth" className="text-sm font-medium text-gray-700">
+                  Date of Birth
+                </Label>
+                <div className="relative mt-1">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    id="date_of_birth"
+                    type="date"
+                    value={formData.date_of_birth}
+                    onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
               {/* Job Title */}
               <div>
                 <Label htmlFor="job_title" className="text-sm font-medium text-gray-700">
@@ -435,7 +454,7 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
               </div>
 
               {/* Location */}
-              <div>
+              <div className="md:col-span-2">
                 <Label htmlFor="location" className="text-sm font-medium text-gray-700">
                   Location
                 </Label>

@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
       phone,
       job_title,
       department,
-      location
+      location,
+      date_of_birth
     } = await request.json();
 
     if (!email || !role) {
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
           job_title: job_title || null,
           department: department || null,
           location: location || null,
+          date_of_birth: date_of_birth || null,
           profile_completed: true,
         })
         .eq('user_id', userId)
@@ -94,6 +96,7 @@ export async function POST(request: NextRequest) {
           job_title: job_title || null,
           department: department || null,
           location: location || null,
+          date_of_birth: date_of_birth || null,
           is_active: true,
           profile_completed: true,
         })

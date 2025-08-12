@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
       phone,
       job_title,
       department,
-      location
+      location,
+      date_of_birth
     } = await request.json();
 
     // Validate mandatory fields
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
       job_title: job_title?.trim() || null,
       department: department?.trim() || null,
       location: location?.trim() || null,
+      date_of_birth: date_of_birth || null,
       invited_by: userId,
     };
 
@@ -138,6 +140,7 @@ export async function POST(request: NextRequest) {
           job_title: job_title?.trim() || null,
           department: department?.trim() || null,
           location: location?.trim() || null,
+          date_of_birth: date_of_birth || null,
         }
       })
       .select()

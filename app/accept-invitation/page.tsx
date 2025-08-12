@@ -26,6 +26,7 @@ function AcceptInvitationContent() {
     job_title: "",
     department: "",
     location: "",
+    date_of_birth: "",
   });
 
   useEffect(() => {
@@ -56,6 +57,7 @@ function AcceptInvitationContent() {
               job_title: data.invitation.user_data?.job_title || "",
               department: data.invitation.user_data?.department || "",
               location: data.invitation.user_data?.location || "",
+              date_of_birth: data.invitation.user_data?.date_of_birth || "",
             });
             
             setProfile({
@@ -65,6 +67,7 @@ function AcceptInvitationContent() {
               job_title: data.invitation.user_data?.job_title || "",
               department: data.invitation.user_data?.department || "",
               location: data.invitation.user_data?.location || "",
+              date_of_birth: data.invitation.user_data?.date_of_birth || "",
             });
             
             setStep("profile");
@@ -196,7 +199,8 @@ function AcceptInvitationContent() {
             <form onSubmit={handleProfileSubmit} className="space-y-4">
               <Input type="text" placeholder="First Name" value={profile.first_name} onChange={e => setProfile(p => ({ ...p, first_name: e.target.value }))} required />
               <Input type="text" placeholder="Last Name" value={profile.last_name} onChange={e => setProfile(p => ({ ...p, last_name: e.target.value }))} required />
-              <Input type="text" placeholder="Phone" value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} />
+              <Input type="tel" placeholder="Phone" value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} />
+              <Input type="date" placeholder="Date of Birth" value={profile.date_of_birth} onChange={e => setProfile(p => ({ ...p, date_of_birth: e.target.value }))} />
               <Input type="text" placeholder="Job Title" value={profile.job_title} onChange={e => setProfile(p => ({ ...p, job_title: e.target.value }))} />
               <Input type="text" placeholder="Department" value={profile.department} onChange={e => setProfile(p => ({ ...p, department: e.target.value }))} />
               <Input type="text" placeholder="Location" value={profile.location} onChange={e => setProfile(p => ({ ...p, location: e.target.value }))} />
