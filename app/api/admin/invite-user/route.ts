@@ -47,17 +47,17 @@ export async function POST(request: NextRequest) {
     } = await request.json();
 
     // Validate mandatory fields
-    if (!email || !first_name || !last_name || !role) {
-      return NextResponse.json({ error: 'Email, first name, last name, and role are required' }, { status: 400 });
+    if (!email || !first_name || !last_name || !role || !date_of_birth) {
+      return NextResponse.json({ error: 'Email, first name, last name, role, and date of birth are required' }, { status: 400 });
     }
 
-    // Validate email format
+    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    // Validate name fields
+    // Name validation
     if (first_name.trim().length < 2) {
       return NextResponse.json({ error: 'First name must be at least 2 characters' }, { status: 400 });
     }
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       job_title: job_title?.trim() || null,
       department: department?.trim() || null,
       location: location?.trim() || null,
-      date_of_birth: date_of_birth || null,
+      date_of_birth: date_of_birth,
       invited_by: userId,
     };
 
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
           job_title: job_title?.trim() || null,
           department: department?.trim() || null,
           location: location?.trim() || null,
-          date_of_birth: date_of_birth || null,
+          date_of_birth: date_of_birth,
         }
       })
       .select()

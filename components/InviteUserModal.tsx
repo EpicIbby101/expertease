@@ -32,19 +32,20 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
     last_name: '',
     role: 'trainee' as 'site_admin' | 'company_admin' | 'trainee',
     companyId: '',
+    // Required fields
+    date_of_birth: '',
     // Optional fields
     phone: '',
     job_title: '',
     department: '',
     location: '',
-    date_of_birth: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate mandatory fields
-    if (!formData.email || !formData.first_name || !formData.last_name || !formData.role) {
+    if (!formData.email || !formData.first_name || !formData.last_name || !formData.role || !formData.date_of_birth) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -94,11 +95,11 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
         last_name: '', 
         role: 'trainee', 
         companyId: '', 
+        date_of_birth: '',
         phone: '', 
         job_title: '', 
         department: '', 
-        location: '',
-        date_of_birth: ''
+        location: ''
       });
       onInviteSuccess();
       onClose();
@@ -239,6 +240,24 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
                   value={formData.last_name}
                   onChange={(e) => handleInputChange('last_name', e.target.value)}
                   className="mt-1"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Date of Birth - Now Required */}
+            <div className="mb-4">
+              <Label htmlFor="date_of_birth" className="text-sm font-medium text-gray-700">
+                Date of Birth *
+              </Label>
+              <div className="relative mt-1">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="date_of_birth"
+                  type="date"
+                  value={formData.date_of_birth}
+                  onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
+                  className="pl-10"
                   required
                 />
               </div>
@@ -403,23 +422,6 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
                 </div>
               </div>
 
-              {/* Date of Birth */}
-              <div>
-                <Label htmlFor="date_of_birth" className="text-sm font-medium text-gray-700">
-                  Date of Birth
-                </Label>
-                <div className="relative mt-1">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    id="date_of_birth"
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
               {/* Job Title */}
               <div>
                 <Label htmlFor="job_title" className="text-sm font-medium text-gray-700">
@@ -454,7 +456,7 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
               </div>
 
               {/* Location */}
-              <div className="md:col-span-2">
+              <div>
                 <Label htmlFor="location" className="text-sm font-medium text-gray-700">
                   Location
                 </Label>
