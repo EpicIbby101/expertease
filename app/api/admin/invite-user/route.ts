@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'An invitation has already been sent to this email' }, { status: 400 });
     }
 
-    // Create Clerk invitation with unique redirect URL
+    // Create Clerk invitation with metadata
     const invitationMetadata = {
       role,
       company_id: companyId || null,
@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
     // Create a unique invitation token for the redirect URL
     const invitationToken = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
+    // Create Clerk invitation using the proper invitation system
     const clerkInvitation = await clerkClient.invitations.createInvitation({
       emailAddress: email,
       redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/accept-invitation?token=${invitationToken}`,
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
         company_id: companyId || null,
         invited_by: userId,
         clerk_invitation_id: clerkInvitation.id,
-        token: invitationToken, // Store the unique token
+        token: invitationToken,
         status: 'pending',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
         user_data: {

@@ -36,10 +36,10 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+    <div className="flex min-h-screen justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-extrabold text-gray-900">
             {invitationData ? 'Complete Your Account Setup' : 'Create Your Account'}
           </h2>
           {invitationData && (
@@ -54,6 +54,8 @@ export default function SignUpPage() {
             elements: {
               formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white",
               card: "shadow-xl",
+              rootBox: "mx-auto",
+              cardContent: "px-6 py-8",
             }
           }}
           redirectUrl={invitationData ? `/accept-invitation?token=${invitationData.token}` : '/dashboard'}
@@ -65,7 +67,7 @@ export default function SignUpPage() {
         />
         
         {invitationData && (
-          <div className="mt-4 text-center">
+          <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
               You're signing up with an invitation. After creating your password, 
               you'll complete your profile setup.

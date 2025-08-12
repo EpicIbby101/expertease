@@ -50,11 +50,12 @@ export async function POST(request: NextRequest) {
     console.log('Webhook event received:', eventType);
     console.log('Full event data:', JSON.stringify(evt.data, null, 2));
 
-    if (eventType === 'user.created') {
+    if (eventType === 'invitation.accepted') {
+      // Handle invitation acceptance - this is the key event for invited users
       const { id, email_addresses, public_metadata, first_name, last_name } = evt.data;
       const email = email_addresses[0]?.email_address;
 
-      console.log('User created event details:');
+      console.log('Invitation accepted event details:');
       console.log('- User ID:', id);
       console.log('- Email:', email);
       console.log('- First Name:', first_name);
@@ -66,11 +67,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'No email found' }, { status: 400 });
       }
 
-      // Check if this user was created from an invitation (has role metadata)
       if (public_metadata && public_metadata.role) {
-        console.log('Creating user from invitation:', { id, email, metadata: public_metadata });
+        console.log('Creating user from accepted invitation:', { id, email, metadata: public_metadata });
 
-        // Create user in Supabase
+        // Create user in Supabase with invitation metadata
         const { data: user, error: userError } = await supabase
           .from('users')
           .insert({
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
         }
 
-        // Mark invitation as accepted
+        // Mark invitation as accepted in our system
         const { error: invitationError } = await supabase
           .from('invitations')
           .update({
@@ -111,11 +111,31 @@ export async function POST(request: NextRequest) {
           // Don't fail the whole process if this fails
         }
 
-        console.log('User created successfully from invitation:', user);
+        console.log('User created successfully from accepted invitation:', user);
       } else {
-        // Regular user signup (not from invitation)
+        console.error('No role metadata found in accepted invitation:', public_metadata);
+        return NextResponse.json({ error: 'Invalid invitation metadata' }, { status: 400 });
+      }
+    } else if (eventType === 'user.created') {
+      // Handle regular user signups (not from invitations)
+      const { id, email_addresses, public_metadata, first_name, last_name } = evt.data;
+      const email = email_addresses[0]?.email_address;
+
+      console.log('Regular user created event details:');
+      console.log('- User ID:', id);
+      console.log('- Email:', email);
+      console.log('- First Name:', first_name);
+      console.log('- Last Name:', last_name);
+      console.log('- Public metadata:', JSON.stringify(public_metadata, null, 2));
+
+      if (!email) {
+        console.error('No email found for user:', id);
+        return NextResponse.json({ error: 'No email found' }, { status: 400 });
+      }
+
+      // Only create regular users if they don't have invitation metadata
+      if (!public_metadata || !public_metadata.role) {
         console.log('Creating regular user (no invitation metadata):', { id, email, first_name, last_name });
-        console.log('Public metadata was:', public_metadata);
         
         const { data: user, error: userError } = await supabase
           .from('users')
@@ -137,6 +157,8 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('Regular user created successfully:', user);
+      } else {
+        console.log('User created with invitation metadata - waiting for invitation.accepted event');
       }
     }
 
