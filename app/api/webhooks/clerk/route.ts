@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Webhook } from 'svix';
 import { headers } from 'next/headers';
+import { clerkClient } from '@clerk/nextjs/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,12 +51,11 @@ export async function POST(request: NextRequest) {
     console.log('Webhook event received:', eventType);
     console.log('Full event data:', JSON.stringify(evt.data, null, 2));
 
-    if (eventType === 'invitation.accepted') {
-      // Handle invitation acceptance - this is the key event for invited users
+    if (eventType === 'user.created') {
       const { id, email_addresses, public_metadata, first_name, last_name } = evt.data;
       const email = email_addresses[0]?.email_address;
 
-      console.log('Invitation accepted event details:');
+      console.log('User created event details:');
       console.log('- User ID:', id);
       console.log('- Email:', email);
       console.log('- First Name:', first_name);
@@ -67,98 +67,117 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'No email found' }, { status: 400 });
       }
 
-      if (public_metadata && public_metadata.role) {
-        console.log('Creating user from accepted invitation:', { id, email, metadata: public_metadata });
-
-        // Create user in Supabase with invitation metadata
-        const { data: user, error: userError } = await supabase
-          .from('users')
-          .insert({
-            user_id: id,
-            email: email,
-            first_name: (public_metadata.first_name as string) || first_name || null,
-            last_name: (public_metadata.last_name as string) || last_name || null,
-            role: public_metadata.role as string,
-            company_id: (public_metadata.company_id as string) || null,
-            phone: (public_metadata.phone as string) || null,
-            job_title: (public_metadata.job_title as string) || null,
-            department: (public_metadata.department as string) || null,
-            location: (public_metadata.location as string) || null,
-            date_of_birth: (public_metadata.date_of_birth as string) || null,
-            is_active: true,
-            profile_completed: false,
-          })
-          .select()
-          .single();
-
-        if (userError) {
-          console.error('Error creating user in Supabase:', userError);
-          return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
-        }
-
-        // Mark invitation as accepted in our system
-        const { error: invitationError } = await supabase
+      try {
+        // Check if this user was created from an invitation by looking up pending invitations
+        const { data: pendingInvitation, error: invitationError } = await supabase
           .from('invitations')
-          .update({
-            status: 'accepted',
-            accepted_at: new Date().toISOString(),
-          })
+          .select('*')
           .eq('email', email)
-          .eq('status', 'pending');
-
-        if (invitationError) {
-          console.error('Error updating invitation:', invitationError);
-          // Don't fail the whole process if this fails
-        }
-
-        console.log('User created successfully from accepted invitation:', user);
-      } else {
-        console.error('No role metadata found in accepted invitation:', public_metadata);
-        return NextResponse.json({ error: 'Invalid invitation metadata' }, { status: 400 });
-      }
-    } else if (eventType === 'user.created') {
-      // Handle regular user signups (not from invitations)
-      const { id, email_addresses, public_metadata, first_name, last_name } = evt.data;
-      const email = email_addresses[0]?.email_address;
-
-      console.log('Regular user created event details:');
-      console.log('- User ID:', id);
-      console.log('- Email:', email);
-      console.log('- First Name:', first_name);
-      console.log('- Last Name:', last_name);
-      console.log('- Public metadata:', JSON.stringify(public_metadata, null, 2));
-
-      if (!email) {
-        console.error('No email found for user:', id);
-        return NextResponse.json({ error: 'No email found' }, { status: 400 });
-      }
-
-      // Only create regular users if they don't have invitation metadata
-      if (!public_metadata || !public_metadata.role) {
-        console.log('Creating regular user (no invitation metadata):', { id, email, first_name, last_name });
-        
-        const { data: user, error: userError } = await supabase
-          .from('users')
-          .insert({
-            user_id: id,
-            email: email,
-            first_name: first_name || null,
-            last_name: last_name || null,
-            role: 'trainee', // Default role for regular signups
-            is_active: true,
-            profile_completed: false,
-          })
-          .select()
+          .eq('status', 'pending')
           .single();
 
-        if (userError) {
-          console.error('Error creating user in Supabase:', userError);
-          return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+        if (invitationError && invitationError.code !== 'PGRST116') {
+          console.error('Error checking for pending invitation:', invitationError);
         }
 
-        console.log('Regular user created successfully:', user);
-      } else {
-        console.log('User created with invitation metadata - waiting for invitation.accepted event');
+        if (pendingInvitation) {
+          console.log('Found pending invitation for user:', pendingInvitation);
+          
+          // This user was created from an invitation - apply the invitation metadata
+          const invitationMetadata = {
+            role: pendingInvitation.role,
+            company_id: pendingInvitation.company_id,
+            first_name: pendingInvitation.user_data?.first_name || first_name || null,
+            last_name: pendingInvitation.user_data?.last_name || last_name || null,
+            phone: pendingInvitation.user_data?.phone || null,
+            job_title: pendingInvitation.user_data?.job_title || null,
+            department: pendingInvitation.user_data?.department || null,
+            location: pendingInvitation.user_data?.location || null,
+            date_of_birth: pendingInvitation.user_data?.date_of_birth || null,
+          };
+
+          console.log('Applying invitation metadata to user:', invitationMetadata);
+
+          // Update the user's public_metadata in Clerk with the invitation data
+          try {
+            await clerkClient.users.updateUser(id, {
+              publicMetadata: invitationMetadata
+            });
+            console.log('Successfully updated user public_metadata in Clerk');
+          } catch (clerkError) {
+            console.error('Error updating user public_metadata in Clerk:', clerkError);
+            // Continue with Supabase creation even if Clerk update fails
+          }
+
+          // Create user in Supabase with invitation metadata
+          const { data: user, error: userError } = await supabase
+            .from('users')
+            .insert({
+              user_id: id,
+              email: email,
+              first_name: invitationMetadata.first_name,
+              last_name: invitationMetadata.last_name,
+              role: invitationMetadata.role,
+              company_id: invitationMetadata.company_id,
+              phone: invitationMetadata.phone,
+              job_title: invitationMetadata.job_title,
+              department: invitationMetadata.department,
+              location: invitationMetadata.location,
+              date_of_birth: invitationMetadata.date_of_birth,
+              is_active: true,
+              profile_completed: false,
+            })
+            .select()
+            .single();
+
+          if (userError) {
+            console.error('Error creating user in Supabase:', userError);
+            return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
+          }
+
+          // Mark invitation as accepted
+          const { error: updateError } = await supabase
+            .from('invitations')
+            .update({
+              status: 'accepted',
+              accepted_at: new Date().toISOString(),
+            })
+            .eq('id', pendingInvitation.id);
+
+          if (updateError) {
+            console.error('Error updating invitation status:', updateError);
+            // Don't fail the whole process if this fails
+          }
+
+          console.log('User created successfully from invitation:', user);
+        } else {
+          // Regular user signup (not from invitation)
+          console.log('Creating regular user (no invitation found):', { id, email, first_name, last_name });
+          
+          const { data: user, error: userError } = await supabase
+            .from('users')
+            .insert({
+              user_id: id,
+              email: email,
+              first_name: first_name || null,
+              last_name: last_name || null,
+              role: 'trainee', // Default role for regular signups
+              is_active: true,
+              profile_completed: false,
+            })
+            .select()
+            .single();
+
+          if (userError) {
+            console.error('Error creating user in Supabase:', userError);
+            return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
+          }
+
+          console.log('Regular user created successfully:', user);
+        }
+      } catch (error) {
+        console.error('Error processing user creation:', error);
+        return NextResponse.json({ error: 'Failed to process user creation' }, { status: 500 });
       }
     }
 
