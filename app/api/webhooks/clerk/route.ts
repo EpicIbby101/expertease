@@ -106,10 +106,10 @@ export async function POST(request: NextRequest) {
             console.log('Successfully updated user public_metadata in Clerk');
           } catch (clerkError) {
             console.error('Error updating user public_metadata in Clerk:', clerkError);
-            // Continue with Supabase creation even if Clerk update fails
+            // Continue even if Clerk update fails
           }
 
-          // Create user in Supabase with invitation metadata
+          // Create user in Supabase with invitation metadata - this is the key fix!
           const { data: user, error: userError } = await supabase
             .from('users')
             .insert({
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
               location: invitationMetadata.location,
               date_of_birth: invitationMetadata.date_of_birth,
               is_active: true,
-              profile_completed: false,
+              profile_completed: false, // Will be completed when they fill out profile
             })
             .select()
             .single();
@@ -135,23 +135,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
           }
 
-          // Mark invitation as accepted
-          const { error: updateError } = await supabase
-            .from('invitations')
-            .update({
-              status: 'accepted',
-              accepted_at: new Date().toISOString(),
-            })
-            .eq('id', pendingInvitation.id);
-
-          if (updateError) {
-            console.error('Error updating invitation status:', updateError);
-            // Don't fail the whole process if this fails
-          }
-
-          console.log('User created successfully from invitation:', user);
+          console.log('User created successfully from invitation with correct role and company:', user);
+          
         } else {
-          // Regular user signup (not from invitation)
+          // Regular user signup (not from invitation) - create user in Supabase
           console.log('Creating regular user (no invitation found):', { id, email, first_name, last_name });
           
           const { data: user, error: userError } = await supabase

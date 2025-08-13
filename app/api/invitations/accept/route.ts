@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Check if user already exists in Supabase
     const { data: existingUser, error: userCheckError } = await supabase
       .from('users')
-      .select('id, user_id, email, role')
+      .select('id, user_id, email, role, company_id')
       .eq('user_id', userId)
       .single();
 
@@ -49,6 +49,14 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       console.log('Updating existing user:', existingUser.id);
+      
+      // Verify that the existing user has the correct role and company from the invitation
+      if (existingUser.role !== role) {
+        console.warn(`Role mismatch: existing user has role '${existingUser.role}', invitation has '${role}'`);
+      }
+      if (existingUser.company_id !== company_id) {
+        console.warn(`Company mismatch: existing user has company '${existingUser.company_id}', invitation has '${company_id}'`);
+      }
       
       // Update existing user with profile data
       const { data: updatedUser, error: updateError } = await supabase
@@ -74,7 +82,7 @@ export async function POST(request: NextRequest) {
 
       console.log('User updated successfully:', updatedUser);
     } else {
-      console.log('Creating new user for invited user');
+      console.log('Creating new user for invited user (fallback - should have been created by webhook)');
       
       // Create new user (this should happen for invited users)
       const { data: newUser, error: createError } = await supabase
