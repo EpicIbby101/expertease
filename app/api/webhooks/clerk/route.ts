@@ -10,14 +10,21 @@ const supabase = createClient(
 );
 
 export async function POST(request: NextRequest) {
+  console.log('🚨🚨🚨 WEBHOOK CALLED! 🚨🚨🚨');
+  console.log('🚨🚨🚨 WEBHOOK CALLED! 🚨🚨🚨');
+  console.log('🚨🚨🚨 WEBHOOK CALLED! 🚨🚨🚨');
+  
   try {
     const headerPayload = await headers();
     const svix_id = headerPayload.get("svix-id");
     const svix_timestamp = headerPayload.get("svix-timestamp");
     const svix_signature = headerPayload.get("svix-signature");
 
+    console.log('🚨 Headers received:', { svix_id, svix_timestamp, svix_signature: svix_signature ? 'YES' : 'NO' });
+
     // If there are no headers, error out
     if (!svix_id || !svix_timestamp || !svix_signature) {
+      console.log('🚨 Missing headers - returning error');
       return new Response('Error occured -- no svix headers', {
         status: 400
       });
@@ -26,6 +33,8 @@ export async function POST(request: NextRequest) {
     // Get the body
     const payload = await request.json();
     const body = JSON.stringify(payload);
+
+    console.log('🚨 Request body received:', payload);
 
     // Create a new Svix instance with your secret.
     const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET || '');
@@ -39,8 +48,9 @@ export async function POST(request: NextRequest) {
         "svix-timestamp": svix_timestamp,
         "svix-signature": svix_signature,
       });
+      console.log('🚨 Webhook verification successful');
     } catch (err) {
-      console.error('Error verifying webhook:', err);
+      console.error('🚨 Error verifying webhook:', err);
       return new Response('Error occured', {
         status: 400
       });
@@ -48,22 +58,24 @@ export async function POST(request: NextRequest) {
 
     // Handle the webhook
     const eventType = evt.type;
-    console.log('Webhook event received:', eventType);
-    console.log('Full event data:', JSON.stringify(evt.data, null, 2));
+    console.log('🚨🚨🚨 Webhook event received:', eventType);
+    console.log('🚨🚨🚨 Full event data:', JSON.stringify(evt.data, null, 2));
 
     if (eventType === 'user.created') {
+      console.log('🚨🚨🚨 PROCESSING USER.CREATED EVENT 🚨🚨🚨');
+      
       const { id, email_addresses, public_metadata, first_name, last_name } = evt.data;
       const email = email_addresses[0]?.email_address;
 
-      console.log('User created event details:');
-      console.log('- User ID:', id);
-      console.log('- Email:', email);
-      console.log('- First Name:', first_name);
-      console.log('- Last Name:', last_name);
-      console.log('- Public metadata:', JSON.stringify(public_metadata, null, 2));
+      console.log('🚨 User created event details:');
+      console.log('🚨 - User ID:', id);
+      console.log('🚨 - Email:', email);
+      console.log('🚨 - First Name:', first_name);
+      console.log('🚨 - Last Name:', last_name);
+      console.log('🚨 - Public metadata:', JSON.stringify(public_metadata, null, 2));
 
       if (!email) {
-        console.error('No email found for user:', id);
+        console.error('🚨 No email found for user:', id);
         return NextResponse.json({ error: 'No email found' }, { status: 400 });
       }
 
@@ -276,6 +288,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log('🚨🚨🚨 WEBHOOK COMPLETED SUCCESSFULLY 🚨🚨🚨');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('❌ Webhook error:', error);
