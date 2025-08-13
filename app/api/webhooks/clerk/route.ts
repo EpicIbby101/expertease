@@ -88,8 +88,9 @@ export async function POST(request: NextRequest) {
           console.log('✅ Found pending invitation in Supabase:', pendingInvitation);
         }
 
+        // If we found an invitation in Supabase, use it
         if (pendingInvitation) {
-          console.log('🎯 Processing invitation for user:', pendingInvitation);
+          console.log('🎯 Processing invitation from Supabase for user:', pendingInvitation);
           
           // This user was created from an invitation - apply the invitation metadata
           const invitationMetadata = {
@@ -146,42 +147,128 @@ export async function POST(request: NextRequest) {
           console.log('✅ User created successfully from invitation with correct role and company:', user);
           
         } else {
-          // No invitation found - this might be a regular signup
-          // But let's double-check by looking for any invitation with this email (including accepted ones)
-          const { data: anyInvitation } = await supabase
-            .from('invitations')
-            .select('*')
-            .eq('email', email)
-            .single();
-
-          if (anyInvitation) {
-            console.log('⚠️ Found invitation (but not pending):', anyInvitation);
-            console.log('⚠️ This suggests the user was invited but the invitation status is:', anyInvitation.status);
-          }
-
-          // Regular user signup (no invitation found) - create user in Supabase
-          console.log('👤 Creating regular user (no invitation found):', { id, email, first_name, last_name });
+          // No invitation found in Supabase - this might be a timing issue
+          // Let's try to find the invitation directly from Clerk's API
+          console.log('🔍 No invitation found in Supabase, checking Clerk API...');
           
-          const { data: user, error: userError } = await supabase
-            .from('users')
-            .insert({
-              user_id: id,
-              email: email,
-              first_name: first_name || null,
-              last_name: last_name || null,
-              role: 'trainee', // Default role for regular signups
-              is_active: true,
-              profile_completed: false,
-            })
-            .select()
-            .single();
+          try {
+            // Get all invitations from Clerk and find one matching this email
+            const clerkInvitations = await clerkClient.invitations.getInvitationList();
+            const matchingInvitation = clerkInvitations.data.find(inv => 
+              inv.emailAddress === email && inv.status === 'pending'
+            );
 
-          if (userError) {
-            console.error('❌ Error creating user in Supabase:', userError);
-            return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
+            if (matchingInvitation) {
+              console.log('🎯 Found pending invitation in Clerk API:', matchingInvitation);
+              console.log('📝 Invitation metadata:', matchingInvitation.publicMetadata);
+              
+              // Extract metadata from Clerk invitation
+              const clerkMetadata = matchingInvitation.publicMetadata as any;
+              const invitationMetadata = {
+                role: clerkMetadata.role,
+                company_id: clerkMetadata.company_id,
+                first_name: clerkMetadata.first_name || first_name || null,
+                last_name: clerkMetadata.last_name || last_name || null,
+                phone: clerkMetadata.phone || null,
+                job_title: clerkMetadata.job_title || null,
+                department: clerkMetadata.department || null,
+                location: clerkMetadata.location || null,
+                date_of_birth: clerkMetadata.date_of_birth || null,
+              };
+
+              console.log('📝 Applying Clerk invitation metadata to user:', invitationMetadata);
+
+              // Update the user's public_metadata in Clerk with the invitation data
+              try {
+                await clerkClient.users.updateUser(id, {
+                  publicMetadata: invitationMetadata
+                });
+                console.log('✅ Successfully updated user public_metadata in Clerk');
+              } catch (clerkError) {
+                console.error('❌ Error updating user public_metadata in Clerk:', clerkError);
+                // Continue even if Clerk update fails
+              }
+
+              // Create user in Supabase with invitation metadata
+              const { data: user, error: userError } = await supabase
+                .from('users')
+                .insert({
+                  user_id: id,
+                  email: email,
+                  first_name: invitationMetadata.first_name,
+                  last_name: invitationMetadata.last_name,
+                  role: invitationMetadata.role,
+                  company_id: invitationMetadata.company_id,
+                  phone: invitationMetadata.phone,
+                  job_title: invitationMetadata.job_title,
+                  department: invitationMetadata.department,
+                  location: invitationMetadata.location,
+                  date_of_birth: invitationMetadata.date_of_birth,
+                  is_active: true,
+                  profile_completed: false,
+                })
+                .select()
+                .single();
+
+              if (userError) {
+                console.error('❌ Error creating user in Supabase:', userError);
+                return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
+              }
+
+              console.log('✅ User created successfully from Clerk invitation with correct role and company:', user);
+              
+            } else {
+              // No invitation found anywhere - this is a regular signup
+              console.log('👤 No invitation found anywhere - creating regular user:', { id, email, first_name, last_name });
+              
+              const { data: user, error: userError } = await supabase
+                .from('users')
+                .insert({
+                  user_id: id,
+                  email: email,
+                  first_name: first_name || null,
+                  last_name: last_name || null,
+                  role: 'trainee', // Default role for regular signups
+                  is_active: true,
+                  profile_completed: false,
+                })
+                .select()
+                .single();
+
+              if (userError) {
+                console.error('❌ Error creating user in Supabase:', userError);
+                return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
+              }
+
+              console.log('✅ Regular user created successfully:', user);
+            }
+          } catch (clerkApiError) {
+            console.error('❌ Error fetching invitations from Clerk API:', clerkApiError);
+            
+            // Fallback to creating regular user
+            console.log('👤 Fallback: Creating regular user due to Clerk API error:', { id, email, first_name, last_name });
+            
+            const { data: user, error: userError } = await supabase
+              .from('users')
+              .insert({
+                user_id: id,
+                email: email,
+                first_name: first_name || null,
+                last_name: last_name || null,
+                role: 'trainee', // Default role for regular signups
+                is_active: true,
+                profile_completed: false,
+              })
+              .select()
+              .single();
+
+            if (userError) {
+              console.error('❌ Error creating user in Supabase:', userError);
+              return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
+            }
+
+            console.log('✅ Regular user created successfully (fallback):', user);
           }
-
-          console.log('✅ Regular user created successfully:', user);
         }
       } catch (error) {
         console.error('❌ Error processing user creation:', error);
