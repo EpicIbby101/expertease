@@ -40,6 +40,24 @@ function AcceptInvitationContent() {
           return;
         }
 
+        // If user is signed in, check if they have a complete profile first
+        if (isSignedIn && user) {
+          try {
+            // Check if user profile is already complete in Supabase
+            const userResponse = await fetch('/api/check-role');
+            const userData = await userResponse.json();
+            
+            if (userData.hasAccess && userData.role) {
+              // User already has a complete profile, redirect to dashboard
+              console.log('User profile complete, redirecting to dashboard');
+              router.push('/dashboard');
+              return;
+            }
+          } catch (err) {
+            console.error('Error checking user role:', err);
+          }
+        }
+
         // First, verify the invitation token
         setStep("verifying");
         const response = await fetch(`/api/invitations/verify?token=${token}`);
@@ -54,19 +72,8 @@ function AcceptInvitationContent() {
         // Store invitation data for later use
         setInvitationData(data.invitation);
         
-        // If user is signed in, check if they have a complete profile
+        // If user is signed in, show profile form
         if (isSignedIn && user) {
-          // Check if user profile is already complete in Supabase
-          const userResponse = await fetch('/api/check-role');
-          const userData = await userResponse.json();
-          
-          if (userData.hasAccess && userData.role) {
-            // User already has a complete profile, redirect to dashboard
-            router.push('/dashboard');
-            return;
-          }
-          
-          // User exists but profile incomplete, show profile form
           setStep("profile");
           return;
         }
@@ -155,7 +162,14 @@ function AcceptInvitationContent() {
       
       setStep("done");
       toast.success("Account setup complete!");
-      router.push("/dashboard");
+      
+      // Clear invitation data from localStorage
+      localStorage.removeItem('invitationData');
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1500);
     } catch (err: any) {
       console.error('Profile submission error:', err);
       setError(err.message || "Failed to complete profile");
@@ -264,7 +278,7 @@ function AcceptInvitationContent() {
           <CardHeader>
             <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
             <CardTitle>Welcome!</CardTitle>
-            <CardDescription>Your account has been created. Redirecting...</CardDescription>
+            <CardDescription>Your account has been created successfully. Redirecting to dashboard...</CardDescription>
           </CardHeader>
         </Card>
       </div>

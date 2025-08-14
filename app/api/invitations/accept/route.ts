@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and role are required' }, { status: 400 });
     }
 
-    console.log('Accepting invitation for user:', { userId, email, role });
+    console.log('Accepting invitation for user:', { userId, email, role, company_id });
 
     // Check if user already exists in Supabase
     const { data: existingUser, error: userCheckError } = await supabase
@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
 
     if (userCheckError) {
       console.error('Error checking if user exists:', userCheckError);
-      // If user doesn't exist, we'll create them
     }
 
     console.log('Existing user check result:', { existingUser, userCheckError });
@@ -50,7 +49,14 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       console.log('Updating existing user:', existingUser.id);
       
-      // Verify that the existing user has the correct role and company from the invitation
+      // Log current vs invitation data for debugging
+      console.log('Current user data:', { 
+        role: existingUser.role, 
+        company_id: existingUser.company_id 
+      });
+      console.log('Invitation data:', { role, company_id });
+      
+      // Check for mismatches
       if (existingUser.role !== role) {
         console.warn(`Role mismatch: existing user has role '${existingUser.role}', invitation has '${role}'`);
       }
@@ -58,7 +64,8 @@ export async function POST(request: NextRequest) {
         console.warn(`Company mismatch: existing user has company '${existingUser.company_id}', invitation has '${company_id}'`);
       }
       
-      // Update existing user with profile data
+      // Update existing user with profile data, but preserve role and company_id
+      // The webhook should have already set these correctly
       const { data: updatedUser, error: updateError } = await supabase
         .from('users')
         .update({
@@ -70,6 +77,7 @@ export async function POST(request: NextRequest) {
           location: location || null,
           date_of_birth: date_of_birth || null,
           profile_completed: true,
+          // Don't update role or company_id - they should already be correct from webhook
         })
         .eq('user_id', userId)
         .select()
@@ -81,6 +89,10 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('User updated successfully:', updatedUser);
+      console.log('Final user data after update:', { 
+        role: updatedUser.role, 
+        company_id: updatedUser.company_id 
+      });
     } else {
       console.log('Creating new user for invited user (fallback - should have been created by webhook)');
       
@@ -125,7 +137,6 @@ export async function POST(request: NextRequest) {
 
     if (invitationError) {
       console.error('Error updating invitation:', invitationError);
-      // Don't fail the whole process if this fails
     } else {
       console.log('Invitation marked as accepted');
     }
@@ -145,6 +156,11 @@ export async function POST(request: NextRequest) {
         warning: 'User data may not be immediately available'
       });
     }
+
+    console.log('Final user data returned:', { 
+      role: finalUser.role, 
+      company_id: finalUser.company_id 
+    });
 
     return NextResponse.json({ 
       success: true, 
