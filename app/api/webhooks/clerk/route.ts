@@ -10,21 +10,14 @@ const supabase = createClient(
 );
 
 export async function POST(request: NextRequest) {
-  console.log('🚨🚨🚨 WEBHOOK CALLED! 🚨🚨🚨');
-  console.log('🚨🚨🚨 WEBHOOK CALLED! 🚨🚨🚨');
-  console.log('🚨🚨🚨 WEBHOOK CALLED! 🚨🚨🚨');
-  
   try {
     const headerPayload = await headers();
     const svix_id = headerPayload.get("svix-id");
     const svix_timestamp = headerPayload.get("svix-timestamp");
     const svix_signature = headerPayload.get("svix-signature");
 
-    console.log('🚨 Headers received:', { svix_id, svix_timestamp, svix_signature: svix_signature ? 'YES' : 'NO' });
-
     // If there are no headers, error out
     if (!svix_id || !svix_timestamp || !svix_signature) {
-      console.log('🚨 Missing headers - returning error');
       return new Response('Error occured -- no svix headers', {
         status: 400
       });
@@ -33,8 +26,6 @@ export async function POST(request: NextRequest) {
     // Get the body
     const payload = await request.json();
     const body = JSON.stringify(payload);
-
-    console.log('🚨 Request body received:', payload);
 
     // Create a new Svix instance with your secret.
     const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET || '');
@@ -48,9 +39,8 @@ export async function POST(request: NextRequest) {
         "svix-timestamp": svix_timestamp,
         "svix-signature": svix_signature,
       });
-      console.log('🚨 Webhook verification successful');
     } catch (err) {
-      console.error('🚨 Error verifying webhook:', err);
+      console.error('Error verifying webhook:', err);
       return new Response('Error occured', {
         status: 400
       });
@@ -58,31 +48,26 @@ export async function POST(request: NextRequest) {
 
     // Handle the webhook
     const eventType = evt.type;
-    console.log('🚨🚨🚨 Webhook event received:', eventType);
-    console.log('🚨🚨🚨 Full event data:', JSON.stringify(evt.data, null, 2));
+    console.log('Webhook event received:', eventType);
 
     if (eventType === 'user.created') {
-      console.log('🚨🚨🚨 PROCESSING USER.CREATED EVENT 🚨🚨🚨');
-      
       const { id, email_addresses, public_metadata, first_name, last_name } = evt.data;
       const email = email_addresses[0]?.email_address;
 
-      console.log('🚨 User created event details:');
-      console.log('🚨 - User ID:', id);
-      console.log('🚨 - Email:', email);
-      console.log('🚨 - First Name:', first_name);
-      console.log('🚨 - Last Name:', last_name);
-      console.log('🚨 - Public metadata:', JSON.stringify(public_metadata, null, 2));
+      console.log('User created event details:');
+      console.log('- User ID:', id);
+      console.log('- Email:', email);
+      console.log('- First Name:', first_name);
+      console.log('- Last Name:', last_name);
+      console.log('- Public metadata:', JSON.stringify(public_metadata, null, 2));
 
       if (!email) {
-        console.error('🚨 No email found for user:', id);
+        console.error('No email found for user:', id);
         return NextResponse.json({ error: 'No email found' }, { status: 400 });
       }
 
       try {
-        console.log('🔍 Looking for invitation for email:', email);
-        
-        // First, try to find the invitation in our Supabase table
+        // First, try to find the invitation by email in our Supabase table
         const { data: pendingInvitation, error: invitationError } = await supabase
           .from('invitations')
           .select('*')
@@ -92,17 +77,17 @@ export async function POST(request: NextRequest) {
 
         if (invitationError) {
           if (invitationError.code === 'PGRST116') {
-            console.log('❌ No pending invitation found for email:', email);
+            console.log('No pending invitation found for email:', email);
           } else {
-            console.error('❌ Error checking for pending invitation:', invitationError);
+            console.error('Error checking for pending invitation:', invitationError);
           }
         } else {
-          console.log('✅ Found pending invitation in Supabase:', pendingInvitation);
+          console.log('Found pending invitation in Supabase:', pendingInvitation);
         }
 
         // If we found an invitation in Supabase, use it
         if (pendingInvitation) {
-          console.log('🎯 Processing invitation from Supabase for user:', pendingInvitation);
+          console.log('Processing invitation from Supabase for user:', pendingInvitation);
           
           // This user was created from an invitation - apply the invitation metadata
           const invitationMetadata = {
@@ -117,20 +102,20 @@ export async function POST(request: NextRequest) {
             date_of_birth: pendingInvitation.user_data?.date_of_birth || null,
           };
 
-          console.log('📝 Applying invitation metadata to user:', invitationMetadata);
+          console.log('Applying invitation metadata to user:', invitationMetadata);
 
           // Update the user's public_metadata in Clerk with the invitation data
           try {
             await clerkClient.users.updateUser(id, {
               publicMetadata: invitationMetadata
             });
-            console.log('✅ Successfully updated user public_metadata in Clerk');
+            console.log('Successfully updated user public_metadata in Clerk');
           } catch (clerkError) {
-            console.error('❌ Error updating user public_metadata in Clerk:', clerkError);
+            console.error('Error updating user public_metadata in Clerk:', clerkError);
             // Continue even if Clerk update fails
           }
 
-          // Create user in Supabase with invitation metadata - this is the key fix!
+          // Create user in Supabase with invitation metadata
           const { data: user, error: userError } = await supabase
             .from('users')
             .insert({
@@ -152,146 +137,60 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (userError) {
-            console.error('❌ Error creating user in Supabase:', userError);
+            console.error('Error creating user in Supabase:', userError);
             return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
           }
 
-          console.log('✅ User created successfully from invitation with correct role and company:', user);
+          // Mark invitation as accepted
+          const { error: updateError } = await supabase
+            .from('invitations')
+            .update({
+              status: 'accepted',
+              accepted_at: new Date().toISOString(),
+            })
+            .eq('id', pendingInvitation.id);
+
+          if (updateError) {
+            console.error('Error updating invitation status:', updateError);
+            // Don't fail the whole process if this fails
+          }
+
+          console.log('User created successfully from invitation with correct role and company:', user);
           
         } else {
-          // No invitation found in Supabase - this might be a timing issue
-          // Let's try to find the invitation directly from Clerk's API
-          console.log('🔍 No invitation found in Supabase, checking Clerk API...');
+          // No invitation found - this is a regular signup
+          console.log('Creating regular user (no invitation found):', { id, email, first_name, last_name });
           
-          try {
-            // Get all invitations from Clerk and find one matching this email
-            const clerkInvitations = await clerkClient.invitations.getInvitationList();
-            const matchingInvitation = clerkInvitations.data.find(inv => 
-              inv.emailAddress === email && inv.status === 'pending'
-            );
+          const { data: user, error: userError } = await supabase
+            .from('users')
+            .insert({
+              user_id: id,
+              email: email,
+              first_name: first_name || null,
+              last_name: last_name || null,
+              role: 'trainee', // Default role for regular signups
+              is_active: true,
+              profile_completed: false,
+            })
+            .select()
+            .single();
 
-            if (matchingInvitation) {
-              console.log('🎯 Found pending invitation in Clerk API:', matchingInvitation);
-              console.log('📝 Invitation metadata:', matchingInvitation.publicMetadata);
-              
-              // Extract metadata from Clerk invitation
-              const clerkMetadata = matchingInvitation.publicMetadata as any;
-              const invitationMetadata = {
-                role: clerkMetadata.role,
-                company_id: clerkMetadata.company_id,
-                first_name: clerkMetadata.first_name || first_name || null,
-                last_name: clerkMetadata.last_name || last_name || null,
-                phone: clerkMetadata.phone || null,
-                job_title: clerkMetadata.job_title || null,
-                department: clerkMetadata.department || null,
-                location: clerkMetadata.location || null,
-                date_of_birth: clerkMetadata.date_of_birth || null,
-              };
-
-              console.log('📝 Applying Clerk invitation metadata to user:', invitationMetadata);
-
-              // Update the user's public_metadata in Clerk with the invitation data
-              try {
-                await clerkClient.users.updateUser(id, {
-                  publicMetadata: invitationMetadata
-                });
-                console.log('✅ Successfully updated user public_metadata in Clerk');
-              } catch (clerkError) {
-                console.error('❌ Error updating user public_metadata in Clerk:', clerkError);
-                // Continue even if Clerk update fails
-              }
-
-              // Create user in Supabase with invitation metadata
-              const { data: user, error: userError } = await supabase
-                .from('users')
-                .insert({
-                  user_id: id,
-                  email: email,
-                  first_name: invitationMetadata.first_name,
-                  last_name: invitationMetadata.last_name,
-                  role: invitationMetadata.role,
-                  company_id: invitationMetadata.company_id,
-                  phone: invitationMetadata.phone,
-                  job_title: invitationMetadata.job_title,
-                  department: invitationMetadata.department,
-                  location: invitationMetadata.location,
-                  date_of_birth: invitationMetadata.date_of_birth,
-                  is_active: true,
-                  profile_completed: false,
-                })
-                .select()
-                .single();
-
-              if (userError) {
-                console.error('❌ Error creating user in Supabase:', userError);
-                return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
-              }
-
-              console.log('✅ User created successfully from Clerk invitation with correct role and company:', user);
-              
-            } else {
-              // No invitation found anywhere - this is a regular signup
-              console.log('👤 No invitation found anywhere - creating regular user:', { id, email, first_name, last_name });
-              
-              const { data: user, error: userError } = await supabase
-                .from('users')
-                .insert({
-                  user_id: id,
-                  email: email,
-                  first_name: first_name || null,
-                  last_name: last_name || null,
-                  role: 'trainee', // Default role for regular signups
-                  is_active: true,
-                  profile_completed: false,
-                })
-                .select()
-                .single();
-
-              if (userError) {
-                console.error('❌ Error creating user in Supabase:', userError);
-                return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
-              }
-
-              console.log('✅ Regular user created successfully:', user);
-            }
-          } catch (clerkApiError) {
-            console.error('❌ Error fetching invitations from Clerk API:', clerkApiError);
-            
-            // Fallback to creating regular user
-            console.log('👤 Fallback: Creating regular user due to Clerk API error:', { id, email, first_name, last_name });
-            
-            const { data: user, error: userError } = await supabase
-              .from('users')
-              .insert({
-                user_id: id,
-                email: email,
-                first_name: first_name || null,
-                last_name: last_name || null,
-                role: 'trainee', // Default role for regular signups
-                is_active: true,
-                profile_completed: false,
-              })
-              .select()
-              .single();
-
-            if (userError) {
-              console.error('❌ Error creating user in Supabase:', userError);
-              return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
-            }
-
-            console.log('✅ Regular user created successfully (fallback):', user);
+          if (userError) {
+            console.error('Error creating user in Supabase:', userError);
+            return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
           }
+
+          console.log('Regular user created successfully:', user);
         }
       } catch (error) {
-        console.error('❌ Error processing user creation:', error);
+        console.error('Error processing user creation:', error);
         return NextResponse.json({ error: 'Failed to process user creation' }, { status: 500 });
       }
     }
 
-    console.log('🚨🚨🚨 WEBHOOK COMPLETED SUCCESSFULLY 🚨🚨🚨');
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('❌ Webhook error:', error);
+    console.error('Webhook error:', error);
     return NextResponse.json({ error: 'Webhook error' }, { status: 500 });
   }
 }

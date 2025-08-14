@@ -89,6 +89,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'An invitation has already been sent to this email' }, { status: 400 });
     }
 
+    // Create a unique invitation token for the redirect URL
+    const invitationToken = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
     // Create Clerk invitation with metadata
     const invitationMetadata = {
       role,
@@ -101,14 +104,13 @@ export async function POST(request: NextRequest) {
       location: location?.trim() || null,
       date_of_birth: date_of_birth,
       invited_by: userId,
+      invitation_token: invitationToken, // Include token in metadata for webhook lookup
     };
 
     console.log('Creating Clerk invitation with metadata:', invitationMetadata);
 
-    // Create a unique invitation token for the redirect URL
-    const invitationToken = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
     // Create Clerk invitation using the proper invitation system
+    // The redirect URL now includes the token so the webhook can link users to invitations
     const clerkInvitation = await clerkClient.invitations.createInvitation({
       emailAddress: email,
       redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/accept-invitation?token=${invitationToken}`,
@@ -131,7 +133,7 @@ export async function POST(request: NextRequest) {
         company_id: companyId || null,
         invited_by: userId,
         clerk_invitation_id: clerkInvitation.id,
-        token: invitationToken,
+        token: invitationToken, // Store the unique token
         status: 'pending',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
         user_data: {

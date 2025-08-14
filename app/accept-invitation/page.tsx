@@ -15,7 +15,7 @@ function AcceptInvitationContent() {
   const { user } = useUser();
   const { isSignedIn } = useAuth();
   const { openSignIn } = useClerk();
-  const [step, setStep] = useState<'loading' | 'signup' | 'profile' | 'done'>('loading');
+  const [step, setStep] = useState<'loading' | 'verifying' | 'signup' | 'profile' | 'done' | 'error'>('loading');
   const [invitationData, setInvitationData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -36,59 +36,39 @@ function AcceptInvitationContent() {
         
         if (!token) {
           setError("Invalid invitation link. Missing token.");
-          setStep("loading");
+          setStep("error");
           return;
         }
 
+        // First, verify the invitation token
+        setStep("verifying");
+        const response = await fetch(`/api/invitations/verify?token=${token}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          setError(data.error || "Invalid or expired invitation");
+          setStep("error");
+          return;
+        }
+
+        // Store invitation data for later use
+        setInvitationData(data.invitation);
+        
         // If user is signed in, check if they have a complete profile
         if (isSignedIn && user) {
-          // Check if user exists in Supabase and has a complete profile
-          const response = await fetch(`/api/invitations/validate?token=${token}`);
-          const data = await response.json();
+          // Check if user profile is already complete in Supabase
+          const userResponse = await fetch('/api/check-role');
+          const userData = await userResponse.json();
           
-          if (response.ok && data.invitation) {
-            // Set invitation data from Supabase
-            setInvitationData({
-              email: data.invitation.email,
-              role: data.invitation.role,
-              company_id: data.invitation.company_id,
-              first_name: data.invitation.user_data?.first_name || "",
-              last_name: data.invitation.user_data?.last_name || "",
-              phone: data.invitation.user_data?.phone || "",
-              job_title: data.invitation.user_data?.job_title || "",
-              department: data.invitation.user_data?.department || "",
-              location: data.invitation.user_data?.location || "",
-              date_of_birth: data.invitation.user_data?.date_of_birth || "",
-            });
-            
-            setProfile({
-              first_name: data.invitation.user_data?.first_name || "",
-              last_name: data.invitation.user_data?.last_name || "",
-              phone: data.invitation.user_data?.phone || "",
-              job_title: data.invitation.user_data?.job_title || "",
-              department: data.invitation.user_data?.department || "",
-              location: data.invitation.user_data?.location || "",
-              date_of_birth: data.invitation.user_data?.date_of_birth || "",
-            });
-            
-            // Check if user profile is already complete in Supabase
-            const userResponse = await fetch('/api/check-role');
-            const userData = await userResponse.json();
-            
-            if (userData.hasAccess && userData.role) {
-              // User already has a complete profile, redirect to dashboard
-              router.push('/dashboard');
-              return;
-            }
-            
-            // User exists but profile incomplete, show profile form
-            setStep("profile");
-            return;
-          } else {
-            setError("Invalid or expired invitation. Please contact your administrator.");
-            setStep("loading");
+          if (userData.hasAccess && userData.role) {
+            // User already has a complete profile, redirect to dashboard
+            router.push('/dashboard');
             return;
           }
+          
+          // User exists but profile incomplete, show profile form
+          setStep("profile");
+          return;
         }
 
         // If not signed in, show signup step
@@ -96,7 +76,7 @@ function AcceptInvitationContent() {
       } catch (err) {
         console.error('Error checking invitation status:', err);
         setError("Failed to load invitation data");
-        setStep("loading");
+        setStep("error");
       }
     };
 
@@ -111,24 +91,15 @@ function AcceptInvitationContent() {
         return;
       }
 
-      // Get invitation data to pre-fill the signup form
-      const response = await fetch(`/api/invitations/validate?token=${token}`);
-      const data = await response.json();
-      
-      if (!response.ok || !data.invitation) {
-        setError("Failed to load invitation data");
-        return;
-      }
-
       // Store invitation data in localStorage for Clerk signup to access
       localStorage.setItem('invitationData', JSON.stringify({
         token,
-        email: data.invitation.email,
-        first_name: data.invitation.user_data?.first_name || "",
-        last_name: data.invitation.user_data?.last_name || "",
-        role: data.invitation.role,
-        company_id: data.invitation.company_id,
-        user_data: data.invitation.user_data
+        email: invitationData.email,
+        first_name: invitationData.user_data?.first_name || "",
+        last_name: invitationData.user_data?.last_name || "",
+        role: invitationData.role,
+        company_id: invitationData.company_id,
+        user_data: invitationData.user_data
       }));
 
       // Redirect to Clerk signup with pre-filled data
@@ -198,22 +169,38 @@ function AcceptInvitationContent() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading invitation...</p>
-          {error && (
-            <Card className="w-full max-w-md mt-6">
-              <CardHeader>
-                <CardTitle className="text-red-600">Error</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-                <Button onClick={() => router.push("/")} className="w-full mt-4">Go to Home</Button>
-              </CardContent>
-            </Card>
-          )}
+          <div className="text-gray-600">Loading invitation...</div>
         </div>
+      </div>
+    );
+  }
+
+  if (step === "verifying") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <div className="text-gray-600">Verifying invitation...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "error") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-600">Invalid Invitation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <Button onClick={() => router.push("/")} className="w-full mt-4">Go to Home</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -293,7 +280,7 @@ export default function AcceptInvitationPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <div className="text-gray-600">Loading...</div>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     }>
