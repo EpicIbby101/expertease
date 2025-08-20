@@ -17,16 +17,16 @@ export async function GET(request: NextRequest) {
 
     console.log('Verifying invitation token:', token);
 
-    // Find the invitation by token
+    // Find the invitation by token (check both pending and accepted)
     const { data: invitation, error } = await supabase
       .from('invitations')
       .select('*')
       .eq('token', token)
-      .eq('status', 'pending')
+      .in('status', ['pending', 'accepted'])
       .single();
 
     if (error || !invitation) {
-      return NextResponse.json({ error: 'Invalid or expired invitation' }, { status: 404 });
+      return NextResponse.json({ error: 'Invalid invitation token' }, { status: 404 });
     }
 
     // Check if invitation has expired
@@ -34,9 +34,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invitation has expired' }, { status: 410 });
     }
 
-    // Return invitation details (without sensitive data)
+    // Return invitation details with status
     return NextResponse.json({
       valid: true,
+      status: invitation.status, // 'pending' or 'accepted'
       invitation: {
         id: invitation.id,
         email: invitation.email,
@@ -44,7 +45,8 @@ export async function GET(request: NextRequest) {
         company_id: invitation.company_id,
         expires_at: invitation.expires_at,
         user_data: invitation.user_data,
-        invited_by: invitation.invited_by
+        invited_by: invitation.invited_by,
+        accepted_at: invitation.accepted_at
       }
     });
 

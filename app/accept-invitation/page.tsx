@@ -40,37 +40,70 @@ function AcceptInvitationContent() {
           return;
         }
 
-        // If user is signed in, check if they have a complete profile first
+        // If user is already signed in, check their status first
         if (isSignedIn && user) {
+          console.log('User is signed in, checking their status...');
+          
+          // Check if user already has a complete profile in Supabase
           try {
-            // Check if user profile is already complete in Supabase
             const userResponse = await fetch('/api/check-role');
             const userData = await userResponse.json();
             
             if (userData.hasAccess && userData.role) {
+              console.log('User has complete profile, redirecting to dashboard');
               // User already has a complete profile, redirect to dashboard
-              console.log('User profile complete, redirecting to dashboard');
               router.push('/dashboard');
               return;
             }
           } catch (err) {
-            console.error('Error checking user role:', err);
+            console.log('Error checking user role, continuing with invitation flow');
           }
+          
+          // User exists but profile incomplete, show profile form
+          // We need to get the invitation data to show the form
+          setStep("verifying");
+        } else {
+          // Not signed in, verify invitation first
+          setStep("verifying");
         }
 
-        // First, verify the invitation token
-        setStep("verifying");
+        // Verify the invitation token
         const response = await fetch(`/api/invitations/verify?token=${token}`);
         const data = await response.json();
         
         if (!response.ok) {
-          setError(data.error || "Invalid or expired invitation");
+          setError(data.error || "Invalid invitation");
           setStep("error");
           return;
         }
 
         // Store invitation data for later use
         setInvitationData(data.invitation);
+        
+        // If invitation is already accepted, check if user has complete profile
+        if (data.status === 'accepted') {
+          console.log('Invitation already accepted, checking user status...');
+          
+          if (isSignedIn && user) {
+            // Check if user already has a complete profile in Supabase
+            try {
+              const userResponse = await fetch('/api/check-role');
+              const userData = await userResponse.json();
+              
+              if (userData.hasAccess && userData.role) {
+                console.log('User has complete profile, redirecting to dashboard');
+                router.push('/dashboard');
+                return;
+              }
+            } catch (err) {
+              console.log('Error checking user role, continuing with profile completion');
+            }
+          }
+          
+          // Invitation accepted but profile incomplete, show profile form
+          setStep("profile");
+          return;
+        }
         
         // If user is signed in, show profile form
         if (isSignedIn && user) {
@@ -162,9 +195,6 @@ function AcceptInvitationContent() {
       
       setStep("done");
       toast.success("Account setup complete!");
-      
-      // Clear invitation data from localStorage
-      localStorage.removeItem('invitationData');
       
       // Redirect to dashboard after a short delay
       setTimeout(() => {
@@ -278,7 +308,7 @@ function AcceptInvitationContent() {
           <CardHeader>
             <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
             <CardTitle>Welcome!</CardTitle>
-            <CardDescription>Your account has been created successfully. Redirecting to dashboard...</CardDescription>
+            <CardDescription>Your account has been created. Redirecting...</CardDescription>
           </CardHeader>
         </Card>
       </div>

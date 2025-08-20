@@ -88,8 +88,6 @@ export async function POST(request: NextRequest) {
         // If we found an invitation in Supabase, use it
         if (pendingInvitation) {
           console.log('Processing invitation from Supabase for user:', pendingInvitation);
-          console.log('Invitation company_id:', pendingInvitation.company_id);
-          console.log('Invitation role:', pendingInvitation.role);
           
           // This user was created from an invitation - apply the invitation metadata
           const invitationMetadata = {
@@ -105,7 +103,7 @@ export async function POST(request: NextRequest) {
           };
 
           console.log('Applying invitation metadata to user:', invitationMetadata);
-          console.log('Company ID being assigned:', invitationMetadata.company_id);
+          console.log('Company ID type and value:', typeof pendingInvitation.company_id, pendingInvitation.company_id);
 
           // Update the user's public_metadata in Clerk with the invitation data
           try {
@@ -127,7 +125,7 @@ export async function POST(request: NextRequest) {
               first_name: invitationMetadata.first_name,
               last_name: invitationMetadata.last_name,
               role: invitationMetadata.role,
-              company_id: invitationMetadata.company_id,
+              company_id: invitationMetadata.company_id, // This should be a UUID
               phone: invitationMetadata.phone,
               job_title: invitationMetadata.job_title,
               department: invitationMetadata.department,
@@ -144,12 +142,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
           }
 
-          console.log('User created successfully from invitation with correct role and company:', user);
-          console.log('Final user data in Supabase:', { 
-            role: user.role, 
-            company_id: user.company_id 
-          });
-          
+          console.log('User created successfully in Supabase:', user);
+
           // Mark invitation as accepted
           const { error: updateError } = await supabase
             .from('invitations')
@@ -162,8 +156,12 @@ export async function POST(request: NextRequest) {
           if (updateError) {
             console.error('Error updating invitation status:', updateError);
             // Don't fail the whole process if this fails
+          } else {
+            console.log('Invitation marked as accepted successfully');
           }
 
+          console.log('User created successfully from invitation with correct role and company:', user);
+          
         } else {
           // No invitation found - this is a regular signup
           console.log('Creating regular user (no invitation found):', { id, email, first_name, last_name });
