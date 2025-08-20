@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       email, 
       role, 
       company_id,
+      company_name, // Add company_name
       first_name,
       last_name,
       phone,
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
           department: department || null,
           location: location || null,
           date_of_birth: date_of_birth || null,
+          company_name: company_name || null, // Update company name
           profile_completed: true,
         })
         .eq('user_id', userId)
@@ -94,6 +96,7 @@ export async function POST(request: NextRequest) {
           last_name: last_name || null,
           role: role,
           company_id: company_id || null,
+          company_name: company_name || null, // Include company name
           phone: phone || null,
           job_title: job_title || null,
           department: department || null,

@@ -13,6 +13,7 @@ export const users = pgTable('user', {
   userId: varchar('user_id').unique().notNull().$defaultFn(() => createId()),
   subscription: text('subscription'),
   company_id: uuid('company_id').references(() => companies.id),
+  company_name: text('company_name'), // Company name for display purposes
   
   // High priority fields
   role: text('role', { enum: ['site_admin', 'company_admin', 'trainee'] }).default('trainee'),

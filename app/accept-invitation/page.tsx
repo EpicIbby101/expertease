@@ -101,12 +101,36 @@ function AcceptInvitationContent() {
           }
           
           // Invitation accepted but profile incomplete, show profile form
+          // Pre-fill the form with invitation data
+          if (data.invitation.user_data) {
+            setProfile({
+              first_name: data.invitation.user_data.first_name || "",
+              last_name: data.invitation.user_data.last_name || "",
+              phone: data.invitation.user_data.phone || "",
+              job_title: data.invitation.user_data.job_title || "",
+              department: data.invitation.user_data.department || "",
+              location: data.invitation.user_data.location || "",
+              date_of_birth: data.invitation.user_data.date_of_birth || "",
+            });
+          }
           setStep("profile");
           return;
         }
         
         // If user is signed in, show profile form
         if (isSignedIn && user) {
+          // Pre-fill the form with invitation data
+          if (data.invitation.user_data) {
+            setProfile({
+              first_name: data.invitation.user_data.first_name || "",
+              last_name: data.invitation.user_data.last_name || "",
+              phone: data.invitation.user_data.phone || "",
+              job_title: data.invitation.user_data.job_title || "",
+              department: data.invitation.user_data.department || "",
+              location: data.invitation.user_data.location || "",
+              date_of_birth: data.invitation.user_data.date_of_birth || "",
+            });
+          }
           setStep("profile");
           return;
         }
@@ -182,6 +206,7 @@ function AcceptInvitationContent() {
           email: invitationData.email,
           role: invitationData.role,
           company_id: invitationData.company_id,
+          company_name: invitationData.company_name, // Include company name
           ...profile,
         }),
         credentials: "include",

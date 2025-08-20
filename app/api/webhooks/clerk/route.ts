@@ -89,10 +89,32 @@ export async function POST(request: NextRequest) {
         if (pendingInvitation) {
           console.log('Processing invitation from Supabase for user:', pendingInvitation);
           
+          // Fetch company name if company_id is provided
+          let companyName = null;
+          if (pendingInvitation.company_id) {
+            try {
+              const { data: companyData, error: companyError } = await supabase
+                .from('companies')
+                .select('name')
+                .eq('id', pendingInvitation.company_id)
+                .single();
+              
+              if (companyError) {
+                console.error('Error fetching company name:', companyError);
+              } else {
+                companyName = companyData.name;
+                console.log('Found company name:', companyName);
+              }
+            } catch (err) {
+              console.error('Error in company lookup:', err);
+            }
+          }
+          
           // This user was created from an invitation - apply the invitation metadata
           const invitationMetadata = {
             role: pendingInvitation.role,
             company_id: pendingInvitation.company_id,
+            company_name: companyName,
             first_name: pendingInvitation.user_data?.first_name || first_name || null,
             last_name: pendingInvitation.user_data?.last_name || last_name || null,
             phone: pendingInvitation.user_data?.phone || null,
@@ -104,6 +126,7 @@ export async function POST(request: NextRequest) {
 
           console.log('Applying invitation metadata to user:', invitationMetadata);
           console.log('Company ID type and value:', typeof pendingInvitation.company_id, pendingInvitation.company_id);
+          console.log('Company name:', companyName);
 
           // Update the user's public_metadata in Clerk with the invitation data
           try {
@@ -126,6 +149,7 @@ export async function POST(request: NextRequest) {
               last_name: invitationMetadata.last_name,
               role: invitationMetadata.role,
               company_id: invitationMetadata.company_id, // This should be a UUID
+              company_name: invitationMetadata.company_name, // Store company name
               phone: invitationMetadata.phone,
               job_title: invitationMetadata.job_title,
               department: invitationMetadata.department,
