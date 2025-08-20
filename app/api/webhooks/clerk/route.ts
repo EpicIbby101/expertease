@@ -140,6 +140,24 @@ export async function POST(request: NextRequest) {
           }
 
           // Create user in Supabase with invitation metadata
+          console.log('About to insert user with company_name:', invitationMetadata.company_name);
+          console.log('Full insert data:', {
+            user_id: id,
+            email: email,
+            first_name: invitationMetadata.first_name,
+            last_name: invitationMetadata.last_name,
+            role: invitationMetadata.role,
+            company_id: invitationMetadata.company_id,
+            company_name: invitationMetadata.company_name,
+            phone: invitationMetadata.phone,
+            job_title: invitationMetadata.job_title,
+            department: invitationMetadata.department,
+            location: invitationMetadata.location,
+            date_of_birth: invitationMetadata.date_of_birth,
+            is_active: true,
+            profile_completed: false,
+          });
+          
           const { data: user, error: userError } = await supabase
             .from('users') // Changed back to 'users' - this is the correct table name
             .insert({
@@ -163,10 +181,12 @@ export async function POST(request: NextRequest) {
 
           if (userError) {
             console.error('Error creating user in Supabase:', userError);
+            console.error('Error details:', JSON.stringify(userError, null, 2));
             return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
           }
 
           console.log('User created successfully in Supabase:', user);
+          console.log('User data returned from insert:', JSON.stringify(user, null, 2));
 
           // Mark invitation as accepted
           const { error: updateError } = await supabase
