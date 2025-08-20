@@ -2,7 +2,7 @@ import { pgTable, serial, timestamp, varchar, text, uuid, boolean } from 'drizzl
 import { createId } from '@paralleldrive/cuid2';
 import { companies } from './companies';
 
-export const users = pgTable('user', {
+export const users = pgTable('users', { // Changed from 'user' to 'users' to match actual DB
   id: serial('id').primaryKey(),
   createdTime: timestamp('created_time').defaultNow(),
   email: varchar('email').unique().notNull(),

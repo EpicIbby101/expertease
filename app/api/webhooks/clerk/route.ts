@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
 
           // Create user in Supabase with invitation metadata
           const { data: user, error: userError } = await supabase
-            .from('users')
+            .from('users') // Changed back to 'users' - this is the correct table name
             .insert({
               user_id: id,
               email: email,
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
           console.log('Creating regular user (no invitation found):', { id, email, first_name, last_name });
           
           const { data: user, error: userError } = await supabase
-            .from('users')
+            .from('users') // Changed back to 'users' - this is the correct table name
             .insert({
               user_id: id,
               email: email,
