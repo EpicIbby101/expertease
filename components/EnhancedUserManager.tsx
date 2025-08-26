@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, UserCheck, UserX, Download } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface User {
   id: string;
@@ -34,15 +35,25 @@ interface User {
 interface EnhancedUserManagerProps {
   users: User[];
   companies: string[];
+  totalUsers: number;
+  currentPage: number;
+  pageSize: number;
 }
 
-export function EnhancedUserManager({ users, companies }: EnhancedUserManagerProps) {
+export function EnhancedUserManager({ users, companies, totalUsers, currentPage, pageSize }: EnhancedUserManagerProps) {
   const { userId } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [companyFilter, setCompanyFilter] = useState<string>('all');
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+
+  // Calculate pagination values
+  const totalPages = Math.ceil(totalUsers / pageSize);
+  const startUser = (currentPage - 1) * pageSize + 1;
+  const endUser = Math.min(currentPage * pageSize, totalUsers);
 
   // Filter users based on search and filters
   const filteredUsers = useMemo(() => {
@@ -55,6 +66,13 @@ export function EnhancedUserManager({ users, companies }: EnhancedUserManagerPro
       return matchesSearch && matchesRole && matchesCompany;
     });
   }, [users, searchTerm, roleFilter, companyFilter]);
+
+  // Navigation functions
+  const navigateToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', page.toString());
+    router.push(`?${params.toString()}`);
+  };
 
   const updateRole = async (userId: string, newRole: 'site_admin' | 'company_admin' | 'trainee') => {
     // Prevent site admins from downgrading themselves
@@ -168,6 +186,42 @@ export function EnhancedUserManager({ users, companies }: EnhancedUserManagerPro
   };
 
   const isCurrentUser = (user: User) => user.id === userId;
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
 
   return (
     <div className="space-y-4">
@@ -371,9 +425,80 @@ export function EnhancedUserManager({ users, companies }: EnhancedUserManagerPro
         )}
       </div>
 
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Showing {startUser} to {endUser} of {totalUsers} results
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            {/* First Page */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateToPage(1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Previous Page */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Page Numbers */}
+            <div className="flex items-center space-x-1">
+              {getPageNumbers().map((page, index) => (
+                <div key={index}>
+                  {page === '...' ? (
+                    <span className="px-3 py-2 text-sm text-gray-500">...</span>
+                  ) : (
+                    <Button
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => navigateToPage(page as number)}
+                      className="min-w-[40px]"
+                    >
+                      {page}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {/* Next Page */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            {/* Last Page */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateToPage(totalPages)}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
       <div className="text-sm text-gray-500">
-        Showing {filteredUsers.length} of {users.length} users
+        Showing {filteredUsers.length} of {users.length} users on this page
       </div>
     </div>
   );

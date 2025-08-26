@@ -11,7 +11,24 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function AdminUsersPage() {
+interface PageProps {
+  searchParams: {
+    page?: string;
+    limit?: string;
+  };
+}
+
+export default async function AdminUsersPage({ searchParams }: PageProps) {
+  const page = parseInt(searchParams.page || '1');
+  const limit = parseInt(searchParams.limit || '10');
+  const offset = (page - 1) * limit;
+
+  // Fetch total count for pagination
+  const { count: totalUsers } = await supabase
+    .from('users')
+    .select('*', { count: 'exact', head: true });
+
+  // Fetch paginated users
   const { data: users, error } = await supabase
     .from('users')
     .select(`
@@ -29,7 +46,8 @@ export default async function AdminUsersPage() {
       profile_completed,
       last_active_at
     `)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   // Fetch companies for the invite modal
   const { data: companies } = await supabase
@@ -47,7 +65,7 @@ export default async function AdminUsersPage() {
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   
   const stats = {
-    totalUsers: users?.length || 0,
+    totalUsers: totalUsers || 0,
     siteAdmins: users?.filter(u => u.role === 'site_admin').length || 0,
     companyAdmins: users?.filter(u => u.role === 'company_admin').length || 0,
     trainees: users?.filter(u => u.role === 'trainee').length || 0,
@@ -171,7 +189,13 @@ export default async function AdminUsersPage() {
               </div>
             )}
             
-            <EnhancedUserManager users={users || []} companies={uniqueCompanies} />
+            <EnhancedUserManager 
+              users={users || []} 
+              companies={uniqueCompanies}
+              totalUsers={totalUsers || 0}
+              currentPage={page}
+              pageSize={limit}
+            />
           </CardContent>
         </Card>
       </div>
