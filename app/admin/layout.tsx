@@ -1,5 +1,8 @@
 import { UserButton } from '@clerk/nextjs';
 import { getUserRole } from '@/lib/auth';
+import { getUserCompany } from '@/lib/auth';
+import Link from 'next/link';
+import { Users, Mail, Building, Home, Trash2 } from 'lucide-react';
 
 export default async function AdminLayout({
   children,
@@ -7,18 +10,30 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const role = await getUserRole();
+  const userCompany = await getUserCompany();
 
   const getRoleDisplay = () => {
+    let roleText = '';
     switch (role) {
       case 'site_admin':
-        return 'Site Administrator';
+        roleText = 'Site Administrator';
+        break;
       case 'company_admin':
-        return 'Company Administrator';
+        roleText = 'Company Administrator';
+        break;
       case 'trainee':
-        return 'Trainee';
+        roleText = 'Trainee';
+        break;
       default:
-        return 'User';
+        roleText = 'User';
     }
+
+    // Add company name for non-site admins
+    if (role !== 'site_admin' && userCompany?.company_name) {
+      roleText += ` at ${userCompany.company_name}`;
+    }
+
+    return roleText;
   };
 
   return (
@@ -46,6 +61,45 @@ export default async function AdminLayout({
           </div>
         </div>
       </header>
+
+      {/* Navigation */}
+      {role === 'site_admin' && (
+        <nav className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex space-x-8">
+              <Link 
+                href="/admin/dashboard" 
+                className="flex items-center px-3 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-blue-500 transition-colors"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Dashboard
+              </Link>
+              <Link 
+                href="/admin/users" 
+                className="flex items-center px-3 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-blue-500 transition-colors"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Users
+              </Link>
+              <Link 
+                href="/admin/invitations" 
+                className="flex items-center px-3 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-blue-500 transition-colors"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Invitations
+              </Link>
+              <Link 
+                href="/admin/companies" 
+                className="flex items-center px-3 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-blue-500 transition-colors"
+              >
+                <Building className="h-4 w-4 mr-2" />
+                Companies
+              </Link>
+
+            </div>
+          </div>
+        </nav>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

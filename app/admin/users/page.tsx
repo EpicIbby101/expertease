@@ -12,15 +12,16 @@ const supabase = createClient(
 );
 
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     limit?: string;
-  };
+  }>;
 }
 
 export default async function AdminUsersPage({ searchParams }: PageProps) {
-  const page = parseInt(searchParams.page || '1');
-  const limit = parseInt(searchParams.limit || '10');
+  const resolvedSearchParams = await searchParams;
+  const page = parseInt(resolvedSearchParams.page || '1');
+  const limit = parseInt(resolvedSearchParams.limit || '10');
   const offset = (page - 1) * limit;
 
   // Fetch total count for pagination

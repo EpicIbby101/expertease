@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +49,7 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
   const [companyFilter, setCompanyFilter] = useState<string>('all');
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Calculate pagination values
   const totalPages = Math.ceil(totalUsers / pageSize);
@@ -69,11 +70,28 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
 
   // Navigation functions
   const navigateToPage = (page: number) => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams();
     params.set('page', page.toString());
+    params.set('limit', pageSize.toString());
     router.push(`?${params.toString()}`);
   };
 
+  // Refresh function
+  const refreshUsers = async () => {
+    setIsRefreshing(true);
+    try {
+      // Use router.refresh() to trigger a server-side refresh of the current route
+      router.refresh();
+      toast.success('Users refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing users:', error);
+      toast.error('Failed to refresh users');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Action functions
   const updateRole = async (userId: string, newRole: 'site_admin' | 'company_admin' | 'trainee') => {
     // Prevent site admins from downgrading themselves
     if (userId === userId && newRole !== 'site_admin') {
@@ -95,8 +113,8 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
       }
       
       toast.success('Role updated successfully');
-      // Refresh the page to show updated roles
-      window.location.reload();
+      // Refresh the users data instead of reloading the page
+      refreshUsers();
     } catch (error) {
       console.error('Error updating role:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update role');
@@ -147,7 +165,8 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
 
       await Promise.all(promises);
       toast.success(`Updated ${selectedUsers.size} users successfully`);
-      window.location.reload();
+      // Refresh the users data instead of reloading the page
+      refreshUsers();
     } catch (error) {
       console.error('Error in bulk update:', error);
       toast.error('Failed to update some users');
@@ -262,6 +281,16 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
         <Button onClick={exportUsers} variant="outline" size="sm">
           <Download className="h-4 w-4 mr-2" />
           Export
+        </Button>
+
+        <Button 
+          onClick={refreshUsers} 
+          variant="outline" 
+          size="sm"
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
 
