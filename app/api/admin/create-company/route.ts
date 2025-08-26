@@ -18,11 +18,11 @@ export async function POST(request: NextRequest) {
     const { data: user } = await supabase
       .from('users')
       .select('role')
-      .eq('id', userId)
+      .eq('user_id', userId)  // Changed from 'id' to 'user_id'
       .single();
 
     if (!user || user.role !== 'site_admin') {
-      return NextResponse.json({ error: 'Only site admins can create companies' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden: Site admin access required' }, { status: 403 });
     }
 
     const { name, slug, description, max_trainees } = await request.json();
@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingCompany) {
-      return NextResponse.json({ error: 'A company with this name already exists' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'A company with this name or slug already exists' 
+      }, { status: 400 });
     }
 
     // Create the company
@@ -82,28 +84,5 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in company creation process:', error);
     return NextResponse.json({ error: 'Failed to create company' }, { status: 500 });
-  }
-}
-
-export async function GET() {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: companies, error } = await supabase
-      .from('companies')
-      .select('id, name, slug, description, max_trainees, is_active')
-      .order('name');
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ companies });
-  } catch (error) {
-    console.error('Error in companies GET API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

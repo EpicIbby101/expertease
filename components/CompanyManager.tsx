@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Building, Plus, Trash2, Users, Calendar, Settings } from 'lucide-react';
+import { Building, Plus, Trash2, Users, Calendar, Settings, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { CreateCompanyModal } from './CreateCompanyModal';
+import { DeleteCompanyModal } from './DeleteCompanyModal';
 
 interface Company {
   id: string;
@@ -18,7 +18,7 @@ interface Company {
   max_trainees: number;
   is_active: boolean;
   created_at: string;
-  users?: Array<{ id: string; role: string }>;
+  users?: Array<{ company_id: string; role: string }>;
 }
 
 interface CompanyManagerProps {
@@ -26,69 +26,55 @@ interface CompanyManagerProps {
 }
 
 export function CompanyManager({ companies }: CompanyManagerProps) {
+  const router = useRouter();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    max_trainees: 10
-  });
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
 
-  const createCompany = async () => {
-    if (!formData.name || !formData.slug) return;
-    
-    setIsLoading(true);
+  // Refresh function
+  const refreshCompanies = async () => {
+    setIsRefreshing(true);
     try {
-      const response = await fetch('/api/admin/create-company', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create company');
-      }
-
-      // Reset form and close dialog
-      setFormData({ name: '', slug: '', description: '', max_trainees: 10 });
-      setIsCreateDialogOpen(false);
-      
-      // Refresh the page to show new company
-      window.location.reload();
+      router.refresh();
+      toast.success('Companies refreshed successfully');
     } catch (error) {
-      console.error('Error creating company:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create company');
+      console.error('Error refreshing companies:', error);
+      toast.error('Failed to refresh companies');
     } finally {
-      setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  const deleteCompany = async (companyId: string) => {
-    if (!confirm('Are you sure you want to delete this company? This will also delete all associated users.')) return;
-    
-    setDeletingId(companyId);
+  const handleCompanyCreated = (company: any) => {
+    // Refresh the companies data
+    refreshCompanies();
+  };
+
+  const handleDeleteClick = (company: Company) => {
+    setCompanyToDelete(company);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async (companyId: string, reason: string) => {
     try {
       const response = await fetch('/api/admin/delete-company', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId }),
+        body: JSON.stringify({ companyId, reason }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete company');
-      }
+      const result = await response.json();
 
-      // Refresh the page to show updated list
-      window.location.reload();
+      if (response.ok) {
+        toast.success(result.message);
+        refreshCompanies();
+      } else {
+        toast.error(result.error || 'Failed to delete company');
+      }
     } catch (error) {
       console.error('Error deleting company:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete company');
-    } finally {
-      setDeletingId(null);
+      toast.error('An error occurred while deleting the company');
     }
   };
 
@@ -115,80 +101,24 @@ export function CompanyManager({ companies }: CompanyManagerProps) {
                 Manage companies and their trainee limits
               </CardDescription>
             </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Company
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Company</DialogTitle>
-                  <DialogDescription>
-                    Create a new company and set their trainee limits.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Company Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="Acme Corporation"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="slug">Company Slug</Label>
-                    <Input
-                      id="slug"
-                      placeholder="acme-corp"
-                      value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Brief description of the company..."
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="max_trainees">Maximum Trainees</Label>
-                    <Input
-                      id="max_trainees"
-                      type="number"
-                      min="1"
-                      value={formData.max_trainees}
-                      onChange={(e) => setFormData({ ...formData, max_trainees: parseInt(e.target.value) || 10 })}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsCreateDialogOpen(false)}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={createCompany}
-                    disabled={!formData.name || !formData.slug || isLoading}
-                  >
-                    {isLoading ? 'Creating...' : 'Create Company'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refreshCompanies}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+              <Button 
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Company
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -246,17 +176,12 @@ export function CompanyManager({ companies }: CompanyManagerProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => deleteCompany(company.id)}
-                      disabled={deletingId === company.id}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleDeleteClick(company)}
+                      className={`text-red-600 hover:text-red-700 hover:bg-red-50 ${
+                        deleteModalOpen && companyToDelete?.id === company.id ? 'ring-2 ring-red-500' : ''
+                      }`}
                     >
-                      {deletingId === company.id ? (
-                        'Deleting...'
-                      ) : (
-                        <>
-                          <Trash2 className="h-4 w-4" />
-                        </>
-                      )}
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -265,6 +190,21 @@ export function CompanyManager({ companies }: CompanyManagerProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Company Modal */}
+      <CreateCompanyModal
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onCompanyCreated={handleCompanyCreated}
+      />
+
+      {/* Delete Company Modal */}
+      <DeleteCompanyModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        company={companyToDelete}
+        onConfirmDelete={handleConfirmDelete}
+      />
     </div>
   );
 } 

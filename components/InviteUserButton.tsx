@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import { InviteUserModal } from './InviteUserModal';
+import { useRouter } from 'next/navigation';
 
 interface Company {
   id: string;
@@ -15,10 +16,16 @@ interface InviteUserButtonProps {
 
 export function InviteUserButton({ companies }: InviteUserButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
   const handleInviteSuccess = () => {
     // Refresh the page to show the new invitation
-    window.location.reload();
+    router.refresh();
+  };
+
+  const handleCompaniesUpdate = () => {
+    // Refresh the page to get updated companies list
+    router.refresh();
   };
 
   return (
@@ -36,6 +43,7 @@ export function InviteUserButton({ companies }: InviteUserButtonProps) {
         onClose={() => setIsModalOpen(false)}
         companies={companies}
         onInviteSuccess={handleInviteSuccess}
+        onCompaniesUpdate={handleCompaniesUpdate}
       />
     </>
   );

@@ -8,10 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { CreateCompanyModal } from './CreateCompanyModal';
 
 interface Company {
   id: string;
   name: string;
+  slug?: string;
+  description?: string;
+  max_trainees?: number;
+  is_active?: boolean;
 }
 
 interface InviteUserModalProps {
@@ -19,13 +24,13 @@ interface InviteUserModalProps {
   onClose: () => void;
   companies: Company[];
   onInviteSuccess: () => void;
+  onCompaniesUpdate?: () => void; // New prop for refreshing companies
 }
 
-export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }: InviteUserModalProps) {
+export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess, onCompaniesUpdate }: InviteUserModalProps) {
   const { userId } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isCreatingCompany, setIsCreatingCompany] = useState(false);
-  const [newCompanyName, setNewCompanyName] = useState('');
+  const [isCreateCompanyModalOpen, setIsCreateCompanyModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     first_name: '',
@@ -115,52 +120,25 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleCreateCompany = async () => {
-    if (!newCompanyName.trim()) {
-      toast.error('Please enter a company name');
-      return;
-    }
-
-    setIsCreatingCompany(true);
-    try {
-      const response = await fetch('/api/admin/companies', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCompanyName.trim() }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create company');
-      }
-
-      const { company } = await response.json();
-      
-      // Add the new company to the list and select it
-      const updatedCompanies = [...companies, company];
-      setFormData(prev => ({ ...prev, companyId: company.id }));
-      setNewCompanyName('');
-      setIsCreatingCompany(false);
-      
-      toast.success(`Company "${company.name}" created successfully!`);
-      
-      // Refresh the companies list
-      onInviteSuccess();
-    } catch (error) {
-      console.error('Error creating company:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create company');
-    } finally {
-      setIsCreatingCompany(false);
+  const handleCompanySelection = (value: string) => {
+    if (value === 'new') {
+      setIsCreateCompanyModalOpen(true);
+      setFormData(prev => ({ ...prev, companyId: '' }));
+    } else {
+      setIsCreateCompanyModalOpen(false);
+      setFormData(prev => ({ ...prev, companyId: value }));
     }
   };
 
-  const handleCompanySelection = (value: string) => {
-    if (value === 'new') {
-      setIsCreatingCompany(true);
-      setFormData(prev => ({ ...prev, companyId: '' }));
+  const handleCompanyCreated = (company: Company) => {
+    // Set the newly created company as selected
+    setFormData(prev => ({ ...prev, companyId: company.id }));
+    
+    // Refresh the companies list
+    if (onCompaniesUpdate) {
+      onCompaniesUpdate();
     } else {
-      setIsCreatingCompany(false);
-      setFormData(prev => ({ ...prev, companyId: value }));
+      onInviteSuccess(); // Fallback to existing behavior
     }
   };
 
@@ -332,66 +310,37 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
                   Company *
                 </Label>
                 
-                {!isCreatingCompany ? (
-                  <select
-                    value={formData.companyId}
-                    onChange={(e) => handleCompanySelection(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select a company</option>
-                    {companies.map(company => (
-                      <option key={company.id} value={company.id}>
-                        {company.name}
+                {!isCreateCompanyModalOpen ? (
+                  <div className="space-y-2">
+                    <select
+                      value={formData.companyId}
+                      onChange={(e) => handleCompanySelection(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select a company</option>
+                      {companies.map(company => (
+                        <option key={company.id} value={company.id}>
+                          {company.name}
+                        </option>
+                      ))}
+                      <option value="new" className="font-medium text-blue-600">
+                        ➕ Create New Company
                       </option>
-                    ))}
-                    <option value="new" className="font-medium text-blue-600">
-                      ➕ Create New Company
-                    </option>
-                  </select>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Plus className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-600">Create New Company</span>
-                    </div>
+                    </select>
                     
-                    <div className="space-y-2">
-                      <Input
-                        type="text"
-                        placeholder="Enter company name"
-                        value={newCompanyName}
-                        onChange={(e) => setNewCompanyName(e.target.value)}
-                        className="w-full"
-                      />
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          onClick={handleCreateCompany}
-                          disabled={isCreatingCompany || !newCompanyName.trim()}
-                          size="sm"
-                          className="flex-1"
-                        >
-                          {isCreatingCompany ? 'Creating...' : 'Create Company'}
-                        </Button>
-                        
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setIsCreatingCompany(false);
-                            setNewCompanyName('');
-                            setFormData(prev => ({ ...prev, companyId: '' }));
-                          }}
-                          size="sm"
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
+                    {formData.companyId && companies.find(c => c.id === formData.companyId) && (
+                      <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                        Selected: <span className="font-medium">{companies.find(c => c.id === formData.companyId)?.name}</span>
                       </div>
-                    </div>
+                    )}
                   </div>
+                ) : (
+                  <CreateCompanyModal
+                    isOpen={isCreateCompanyModalOpen}
+                    onClose={() => setIsCreateCompanyModalOpen(false)}
+                    onCompanyCreated={handleCompanyCreated}
+                  />
                 )}
               </div>
             )}
@@ -508,13 +457,20 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess }:
             <Button
               type="submit"
               className="flex-1"
-              disabled={isLoading || isCreatingCompany}
+              disabled={isLoading || isCreateCompanyModalOpen}
             >
               {isLoading ? 'Sending...' : 'Send Invitation'}
             </Button>
           </div>
         </form>
       </div>
+
+      {/* Create Company Modal */}
+      <CreateCompanyModal
+        isOpen={isCreateCompanyModalOpen}
+        onClose={() => setIsCreateCompanyModalOpen(false)}
+        onCompanyCreated={handleCompanyCreated}
+      />
     </div>
   );
 } 
