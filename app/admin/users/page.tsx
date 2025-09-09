@@ -116,10 +116,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           </div>
           <div className="flex gap-2">
             <InviteUserButton companies={companies || []} />
-            <button className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+            <Link
+              href="/admin/security-audit"
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+            >
               <Shield className="h-4 w-4 mr-2" />
               Security Audit
-            </button>
+            </Link>
             <Link
               href="/admin/recycling-bin"
               className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"

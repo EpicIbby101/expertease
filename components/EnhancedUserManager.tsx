@@ -291,10 +291,10 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
           onChange={(e) => setRoleFilter(e.target.value)}
           className="w-[180px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          <option value="all">All Roles</option>
-          <option value="site_admin">Site Admin</option>
-          <option value="company_admin">Company Admin</option>
-          <option value="trainee">Trainee</option>
+          <option key="all" value="all">All Roles</option>
+          <option key="site_admin" value="site_admin">Site Admin</option>
+          <option key="company_admin" value="company_admin">Company Admin</option>
+          <option key="trainee" value="trainee">Trainee</option>
         </select>
 
         <select 
@@ -492,9 +492,9 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
                       disabled={updating === user.id || isCurrentUser(user)}
                       className="w-[120px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
-                      <option value="trainee">Trainee</option>
-                      <option value="company_admin">Company Admin</option>
-                      <option value="site_admin">Site Admin</option>
+                      <option key="trainee" value="trainee">Trainee</option>
+                      <option key="company_admin" value="company_admin">Company Admin</option>
+                      <option key="site_admin" value="site_admin">Site Admin</option>
                     </select>
                     
                     <Button
