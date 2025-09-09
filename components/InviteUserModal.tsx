@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { toast } from 'sonner';
 import { CreateCompanyModal } from './CreateCompanyModal';
 
@@ -312,22 +313,22 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess, o
                 
                 {!isCreateCompanyModalOpen ? (
                   <div className="space-y-2">
-                    <select
-                      value={formData.companyId}
-                      onChange={(e) => handleCompanySelection(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    >
-                      <option value="">Select a company</option>
-                      {companies.map(company => (
-                        <option key={company.id} value={company.id}>
-                          {company.name}
-                        </option>
-                      ))}
-                      <option value="new" className="font-medium text-blue-600">
-                        ➕ Create New Company
+                  <select
+                    value={formData.companyId}
+                    onChange={(e) => handleCompanySelection(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select a company</option>
+                      {(companies || []).map(company => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
                       </option>
-                    </select>
+                    ))}
+                    <option value="new" className="font-medium text-blue-600">
+                      ➕ Create New Company
+                    </option>
+                  </select>
                     
                     {formData.companyId && companies.find(c => c.id === formData.companyId) && (
                       <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
@@ -454,13 +455,15 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess, o
             >
               Cancel
             </Button>
-            <Button
+            <LoadingButton
               type="submit"
               className="flex-1"
-              disabled={isLoading || isCreateCompanyModalOpen}
+              loading={isLoading}
+              loadingText="Sending..."
+              disabled={isCreateCompanyModalOpen}
             >
-              {isLoading ? 'Sending...' : 'Send Invitation'}
-            </Button>
+              Send Invitation
+            </LoadingButton>
           </div>
         </form>
       </div>

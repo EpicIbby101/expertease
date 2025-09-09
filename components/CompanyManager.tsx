@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Building, Plus, Trash2, Users, Calendar, Settings, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -95,41 +96,42 @@ export function CompanyManager({ companies }: CompanyManagerProps) {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Building className="h-5 w-5" />
-                Companies ({companies.length})
+                Companies ({companies?.length || 0})
               </CardTitle>
               <CardDescription>
                 Manage companies and their trainee limits
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button 
+              <LoadingButton 
                 variant="outline" 
                 size="sm" 
                 onClick={refreshCompanies}
-                disabled={isRefreshing}
+                loading={isRefreshing}
+                loadingText="Refreshing..."
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </Button>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </LoadingButton>
               <Button 
                 onClick={() => setIsCreateDialogOpen(true)}
                 className="flex items-center gap-2"
               >
-                <Plus className="h-4 w-4" />
-                Add Company
-              </Button>
-            </div>
+                  <Plus className="h-4 w-4" />
+                  Add Company
+                </Button>
+                </div>
           </div>
         </CardHeader>
         <CardContent>
-          {companies.length === 0 ? (
+          {!companies || companies.length === 0 ? (
             <div className="text-center py-8">
               <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-4">No companies yet. Add your first company to get started.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {companies.map((company) => (
+              {(companies || []).map((company) => (
                 <div
                   key={company.id}
                   className="flex items-center justify-between p-4 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -181,7 +183,7 @@ export function CompanyManager({ companies }: CompanyManagerProps) {
                         deleteModalOpen && companyToDelete?.id === company.id ? 'ring-2 ring-red-500' : ''
                       }`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

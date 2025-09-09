@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SmoothLoadingWrapper } from '@/components/ui/smooth-loading-wrapper';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -64,9 +68,10 @@ interface InvitationTrackerProps {
   totalInvitations: number;
   currentPage: number;
   pageSize: number;
+  isLoading?: boolean;
 }
 
-export function InvitationTracker({ invitations, totalInvitations, currentPage, pageSize }: InvitationTrackerProps) {
+export function InvitationTracker({ invitations, totalInvitations, currentPage, pageSize, isLoading = false }: InvitationTrackerProps) {
   const { userId } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -99,7 +104,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
 
   // Get unique companies for filter
   const uniqueCompanies = useMemo(() => {
-    return [...new Set(invitations.map(inv => inv.company_name).filter(Boolean))];
+    return [...new Set((invitations || []).map(inv => inv.company_name).filter(Boolean))];
   }, [invitations]);
 
   // Navigation functions
@@ -217,7 +222,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
   };
 
   const selectAllInvitations = () => {
-    setSelectedInvitations(new Set(filteredInvitations.map(inv => inv.id)));
+            setSelectedInvitations(new Set((filteredInvitations || []).map(inv => inv.id)));
   };
 
   const clearSelection = () => {
@@ -232,7 +237,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
 
     setUpdating('bulk');
     try {
-      const promises = Array.from(selectedInvitations).map(invitationId => 
+      const promises = Array.from(selectedInvitations || []).map(invitationId => 
         fetch('/api/admin/resend-invitation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -264,7 +269,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
 
     setUpdating('bulk');
     try {
-      const promises = Array.from(selectedInvitations).map(invitationId => 
+      const promises = Array.from(selectedInvitations || []).map(invitationId => 
         fetch('/api/admin/cancel-invitation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -377,15 +382,16 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
           <p className="text-gray-600 mt-1">Track and manage user invitations across the platform</p>
         </div>
         <div className="flex gap-2">
-          <Button 
+          <LoadingButton 
             variant="outline" 
             size="sm" 
             onClick={refreshInvitations}
-            disabled={isRefreshing}
+            loading={isRefreshing}
+            loadingText="Refreshing..."
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </LoadingButton>
         </div>
       </div>
 
@@ -408,7 +414,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
             <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{invitations.filter(inv => inv.status === 'pending').length}</div>
+            <div className="text-2xl font-bold">{invitations?.filter(inv => inv.status === 'pending')?.length || 0}</div>
             <p className="text-xs text-gray-500">Awaiting response</p>
           </CardContent>
         </Card>
@@ -419,7 +425,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{invitations.filter(inv => inv.status === 'accepted').length}</div>
+            <div className="text-2xl font-bold">{invitations?.filter(inv => inv.status === 'accepted')?.length || 0}</div>
             <p className="text-xs text-gray-500">Successfully joined</p>
           </CardContent>
         </Card>
@@ -430,7 +436,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
             <AlertCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{invitations.filter(inv => inv.status === 'expired').length}</div>
+            <div className="text-2xl font-bold">{invitations?.filter(inv => inv.status === 'expired')?.length || 0}</div>
             <p className="text-xs text-gray-500">Past expiry date</p>
           </CardContent>
         </Card>
@@ -477,7 +483,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
           className="w-[180px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="all">All Companies</option>
-          {uniqueCompanies.map(company => (
+                      {(uniqueCompanies || []).map(company => (
             <option key={company} value={company}>{company}</option>
           ))}
         </select>
@@ -522,14 +528,54 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <SmoothLoadingWrapper
+            isLoading={isLoading}
+            skeleton={
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-8 w-48" />
+                  <Skeleton className="h-8 w-32" />
+                </div>
+                <TableSkeleton rows={8} columns={8} />
+              </div>
+            }
+          >
+            {!filteredInvitations || filteredInvitations.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto h-12 w-12 text-gray-400">
+                <Mail className="h-12 w-12" />
+              </div>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No invitations found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm || statusFilter !== 'all' || roleFilter !== 'all' || companyFilter !== 'all' 
+                  ? 'Try adjusting your search or filters.'
+                  : 'Get started by inviting your first user.'
+                }
+              </p>
+              {searchTerm || statusFilter !== 'all' || roleFilter !== 'all' || companyFilter !== 'all' ? (
+                <Button 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setRoleFilter('all');
+                    setCompanyFilter('all');
+                  }}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  Clear filters
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <input
                       type="checkbox"
-                      checked={selectedInvitations.size === filteredInvitations.length && filteredInvitations.length > 0}
+                      checked={selectedInvitations.size === (filteredInvitations?.length || 0) && (filteredInvitations?.length || 0) > 0}
                       onChange={selectAllInvitations}
                       className="rounded border-gray-300"
                     />
@@ -544,7 +590,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredInvitations.map((invitation) => (
+                {(filteredInvitations || []).map((invitation) => (
                   <tr key={invitation.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
@@ -652,13 +698,9 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
                 ))}
               </tbody>
             </table>
-            
-            {filteredInvitations.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No invitations found matching your criteria
-              </div>
-            )}
           </div>
+          )}
+          </SmoothLoadingWrapper>
         </CardContent>
       </Card>
 
@@ -735,7 +777,7 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
 
       {/* Summary */}
       <div className="text-sm text-gray-500">
-        Showing {filteredInvitations.length} of {invitations.length} invitations on this page
+        Showing {filteredInvitations?.length || 0} of {invitations?.length || 0} invitations on this page
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { RoleGate } from '@/components/RoleGate';
 import { CompanyManager } from '@/components/CompanyManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building, Users, Award, RefreshCw, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,6 +26,8 @@ export default async function AdminCompaniesPage() {
     `)
     .is('deleted_at', null) // Only show non-deleted companies
     .order('created_at', { ascending: false });
+
+
 
   // Get user counts separately to avoid relationship conflicts
   let companiesWithUsers: Array<{
@@ -82,13 +85,13 @@ export default async function AdminCompaniesPage() {
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </a>
-            <a
+            <Link
               href="/admin/recycling-bin"
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Recycling Bin
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -137,6 +140,7 @@ export default async function AdminCompaniesPage() {
 
         {/* Company Management */}
         <CompanyManager companies={companiesWithUsers || []} />
+
       </div>
     </RoleGate>
   );

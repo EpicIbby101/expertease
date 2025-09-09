@@ -12,6 +12,11 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SmoothLoadingWrapper } from '@/components/ui/smooth-loading-wrapper';
+import { UserProfileManager } from '@/components/UserProfileManager';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -32,15 +37,24 @@ interface User {
   last_active_at?: string;
 }
 
+interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  max_trainees: number;
+  is_active: boolean;
+}
+
 interface EnhancedUserManagerProps {
   users: User[];
-  companies: string[];
+  companies: Company[];
   totalUsers: number;
   currentPage: number;
   pageSize: number;
+  isLoading?: boolean;
 }
 
-export function EnhancedUserManager({ users, companies, totalUsers, currentPage, pageSize }: EnhancedUserManagerProps) {
+export function EnhancedUserManager({ users, companies, totalUsers, currentPage, pageSize, isLoading = false }: EnhancedUserManagerProps) {
   const { userId } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -50,6 +64,8 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [selectedUserForProfile, setSelectedUserForProfile] = useState<User | null>(null);
 
   // Calculate pagination values
   const totalPages = Math.ceil(totalUsers / pageSize);
@@ -134,7 +150,7 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
   };
 
   const selectAllUsers = () => {
-    setSelectedUsers(new Set(filteredUsers.map(u => u.id)));
+            setSelectedUsers(new Set((filteredUsers || []).map(u => u.id)));
   };
 
   const clearSelection = () => {
@@ -155,7 +171,7 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
 
     setUpdating('bulk');
     try {
-      const promises = Array.from(selectedUsers).map(userId => 
+              const promises = Array.from(selectedUsers || []).map(userId => 
         fetch('/api/admin/update-role', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -178,7 +194,7 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
   const exportUsers = () => {
     const csvContent = [
       ['Email', 'Role', 'Company', 'Created At'],
-      ...filteredUsers.map(user => [
+              ...(filteredUsers || []).map(user => [
         user.email,
         user.role,
         user.company_name || 'N/A',
@@ -193,6 +209,20 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
     a.download = `users-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const openUserProfile = (user: User) => {
+    setSelectedUserForProfile(user);
+    setProfileModalOpen(true);
+  };
+
+  const closeUserProfile = () => {
+    setProfileModalOpen(false);
+    setSelectedUserForProfile(null);
+  };
+
+  const handleUserProfileUpdated = () => {
+    refreshUsers();
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -273,8 +303,8 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
           className="w-[180px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="all">All Companies</option>
-          {companies.map(company => (
-            <option key={company} value={company}>{company}</option>
+          {(companies || []).map(company => (
+            <option key={company.id} value={company.name}>{company.name}</option>
           ))}
         </select>
 
@@ -283,15 +313,16 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
           Export
         </Button>
 
-        <Button 
+        <LoadingButton 
           onClick={refreshUsers} 
           variant="outline" 
           size="sm"
-          disabled={isRefreshing}
+          loading={isRefreshing}
+          loadingText="Refreshing..."
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </LoadingButton>
       </div>
 
       {/* Bulk Actions */}
@@ -300,33 +331,36 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
           <span className="text-sm text-blue-800">
             {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''} selected
           </span>
-          <Button
+          <LoadingButton
             onClick={() => bulkUpdateRole('site_admin')}
             size="sm"
             variant="outline"
-            disabled={updating === 'bulk'}
+            loading={updating === 'bulk'}
+            loadingText="Updating..."
           >
             <UserCheck className="h-4 w-4 mr-1" />
             Make Site Admin
-          </Button>
-          <Button
+          </LoadingButton>
+          <LoadingButton
             onClick={() => bulkUpdateRole('company_admin')}
             size="sm"
             variant="outline"
-            disabled={updating === 'bulk'}
+            loading={updating === 'bulk'}
+            loadingText="Updating..."
           >
             <UserCheck className="h-4 w-4 mr-1" />
             Make Company Admin
-          </Button>
-          <Button
+          </LoadingButton>
+          <LoadingButton
             onClick={() => bulkUpdateRole('trainee')}
             size="sm"
             variant="outline"
-            disabled={updating === 'bulk'}
+            loading={updating === 'bulk'}
+            loadingText="Updating..."
           >
             <UserCheck className="h-4 w-4 mr-1" />
             Make Trainee
-          </Button>
+          </LoadingButton>
           <Button onClick={clearSelection} size="sm" variant="ghost">
             Clear
           </Button>
@@ -334,14 +368,53 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
       )}
 
       {/* Users Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+      <SmoothLoadingWrapper
+        isLoading={isLoading}
+        skeleton={
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+            <TableSkeleton rows={8} columns={7} />
+          </div>
+        }
+      >
+        {!filteredUsers || filteredUsers.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="mx-auto h-12 w-12 text-gray-400">
+            <UserX className="h-12 w-12" />
+          </div>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {searchTerm || roleFilter !== 'all' || companyFilter !== 'all' 
+              ? 'Try adjusting your search or filters.'
+              : 'Get started by inviting your first user.'
+            }
+          </p>
+          {searchTerm || roleFilter !== 'all' || companyFilter !== 'all' ? (
+            <Button 
+              onClick={() => {
+                setSearchTerm('');
+                setRoleFilter('all');
+                setCompanyFilter('all');
+              }}
+              variant="outline"
+              className="mt-4"
+            >
+              Clear filters
+            </Button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 <input
                   type="checkbox"
-                  checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
+                  checked={selectedUsers.size === (filteredUsers?.length || 0) && (filteredUsers?.length || 0) > 0}
                   onChange={selectAllUsers}
                   className="rounded border-gray-300"
                 />
@@ -350,12 +423,11 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredUsers.map((user) => (
+            {(filteredUsers || []).map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <input
@@ -407,29 +479,33 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
                       : 'Never active'
                     }
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    <Badge variant={user.profile_completed ? "default" : "secondary"}>
-                      {user.profile_completed ? 'Complete' : 'Incomplete'}
-                    </Badge>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Joined {new Date(user.created_at).toLocaleDateString()}
+                  <div className="text-xs text-gray-400 mt-1">
+                    Profile: {user.profile_completed ? 'Complete' : 'Incomplete'} • Joined {new Date(user.created_at).toLocaleDateString()}
                   </div>
                 </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <select
                       value={user.role}
                       onChange={(e) => updateRole(user.id, e.target.value as any)}
                       disabled={updating === user.id || isCurrentUser(user)}
-                      className="w-[140px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-[120px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
                       <option value="trainee">Trainee</option>
                       <option value="company_admin">Company Admin</option>
                       <option value="site_admin">Site Admin</option>
                     </select>
+                    
+                    <Button
+                      onClick={() => openUserProfile(user)}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-16"
+                      title="View Profile"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     
                     {isCurrentUser(user) && (
                       <Badge variant="secondary" className="text-xs">
@@ -446,13 +522,9 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
             ))}
           </tbody>
         </table>
-        
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No users found matching your criteria
-          </div>
-        )}
-      </div>
+              </div>
+      )}
+      </SmoothLoadingWrapper>
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
@@ -527,8 +599,18 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
 
       {/* Summary */}
       <div className="text-sm text-gray-500">
-        Showing {filteredUsers.length} of {users.length} users on this page
+        Showing {filteredUsers?.length || 0} of {users?.length || 0} users on this page
       </div>
+
+      {/* User Profile Modal */}
+      {profileModalOpen && selectedUserForProfile && (
+        <UserProfileManager
+          user={selectedUserForProfile}
+          companies={companies}
+          onClose={closeUserProfile}
+          onUserUpdated={handleUserProfileUpdated}
+        />
+      )}
     </div>
   );
 } 

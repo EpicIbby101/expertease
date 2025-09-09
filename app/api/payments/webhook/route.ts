@@ -267,7 +267,7 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event, supabase: Sup
         currency: session.currency,
       };
 
-      console.log(`[STRIPE WEBHOOK] Inserting payment data with fields:`, Object.keys(paymentData));
+      console.log(`[STRIPE WEBHOOK] Inserting payment data with fields:`, paymentData ? Object.keys(paymentData) : 'No payment data');
       console.log(`[STRIPE WEBHOOK] Payment data values:`, paymentData);
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')

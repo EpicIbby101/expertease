@@ -3,8 +3,9 @@ import { RoleGate } from '../../../components/RoleGate';
 import { EnhancedUserManager } from '../../../components/EnhancedUserManager';
 import { InviteUserModal } from '../../../components/InviteUserModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Building, Award, TrendingUp, UserPlus, Activity, Shield } from 'lucide-react';
+import { Users, Building, Award, TrendingUp, UserPlus, Activity, Shield, Trash2 } from 'lucide-react';
 import { InviteUserButton } from '../../../components/InviteUserButton';
+import Link from 'next/link';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,6 +51,33 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
+  // Get deleted users for recycling bin (if soft delete is implemented)
+  let deletedUsers: any[] = [];
+  try {
+    const { data: users } = await supabase
+      .from('users')
+      .select(`
+        id,
+        email,
+        first_name,
+        last_name,
+        role,
+        company_name,
+        created_at,
+        deleted_at,
+        deleted_by,
+        deleted_reason
+      `)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+    
+    deletedUsers = users || [];
+  } catch (error) {
+    // Soft delete not implemented yet
+    console.log('Users soft delete not yet implemented:', error);
+    deletedUsers = [];
+  }
+
   // Fetch companies for the invite modal
   const { data: companies } = await supabase
     .from('companies')
@@ -92,6 +120,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
               <Shield className="h-4 w-4 mr-2" />
               Security Audit
             </button>
+            <Link
+              href="/admin/recycling-bin"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Recycling Bin
+            </Link>
           </div>
         </div>
 
@@ -199,6 +234,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
             />
           </CardContent>
         </Card>
+
       </div>
     </RoleGate>
   );

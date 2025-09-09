@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 
 interface Company {
@@ -221,25 +222,18 @@ export function DeleteCompanyModal({ isOpen, onClose, company, onConfirmDelete }
               >
                 Cancel
               </Button>
-              <Button
+              <LoadingButton
                 type="button"
                 variant="destructive"
                 onClick={handleConfirmDelete}
-                disabled={!isConfirmationValid || isDeleting}
+                loading={isDeleting}
+                loadingText="Deleting..."
+                disabled={!isConfirmationValid}
                 className="bg-red-600 hover:bg-red-700"
               >
-                {isDeleting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Company
-                  </>
-                )}
-              </Button>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Company
+              </LoadingButton>
             </>
           )}
         </DialogFooter>

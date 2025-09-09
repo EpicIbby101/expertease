@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Debug info retrieved',
-      tableStructure: tableInfo.length > 0 ? Object.keys(tableInfo[0]) : 'No data to infer structure',
+      tableStructure: tableInfo && tableInfo.length > 0 ? Object.keys(tableInfo[0]) : 'No data to infer structure',
       user: user,
       usersWithCompany: usersWithCompany || [],
       companyError: companyError

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Building, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -192,12 +193,14 @@ export function CreateCompanyModal({ isOpen, onClose, onCompanyCreated }: Create
             >
               Cancel
             </Button>
-            <Button
+            <LoadingButton
               type="submit"
-              disabled={!formData.name || !formData.slug || isLoading}
+              loading={isLoading}
+              loadingText="Creating..."
+              disabled={!formData.name || !formData.slug}
             >
-              {isLoading ? 'Creating...' : 'Create Company'}
-            </Button>
+              Create Company
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

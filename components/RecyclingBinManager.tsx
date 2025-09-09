@@ -1,13 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, RotateCcw, Clock, AlertTriangle, Building, Calendar, User } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Trash2, 
+  Clock, 
+  AlertTriangle, 
+  RotateCcw, 
+  X, 
+  Building, 
+  Users,
+  Calendar,
+  User
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
 
 interface DeletedCompany {
   id: string;
@@ -20,215 +30,399 @@ interface DeletedCompany {
   deleted_at: string;
   deleted_by?: string;
   deleted_reason?: string;
-  deleted_by_user?: {
-    name: string;
-    email: string;
-  };
+}
+
+interface DeletedUser {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role: string;
+  company_name?: string;
+  created_at: string;
+  deleted_at: string;
+  deleted_by?: string;
+  deleted_reason?: string;
 }
 
 interface RecyclingBinManagerProps {
-  deletedCompanies: DeletedCompany[];
+  deletedCompanies?: DeletedCompany[];
+  deletedUsers?: DeletedUser[];
 }
 
-export function RecyclingBinManager({ deletedCompanies }: RecyclingBinManagerProps) {
-  const router = useRouter();
-  const [isRecovering, setIsRecovering] = useState<string | null>(null);
-  const [isPermanentlyDeleting, setIsPermanentlyDeleting] = useState<string | null>(null);
+export function RecyclingBinManager({ 
+  deletedCompanies = [], 
+  deletedUsers = [] 
+}: RecyclingBinManagerProps) {
+  const [companies, setCompanies] = useState<DeletedCompany[]>(deletedCompanies);
+  const [users, setUsers] = useState<DeletedUser[]>(deletedUsers);
+  const [loading, setLoading] = useState(false);
 
-  const isRecoverable = (deletedAt: string) => {
-    const deletedDate = new Date(deletedAt);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return deletedDate > thirtyDaysAgo;
+  // Calculate stats
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+  
+  const companyStats = {
+    totalDeleted: companies.length,
+    recoverable: companies.filter(c => new Date(c.deleted_at) > thirtyDaysAgo).length,
+    permanentlyDeleted: companies.filter(c => new Date(c.deleted_at) <= thirtyDaysAgo).length,
   };
 
-  const handleRecover = async (companyId: string) => {
-    setIsRecovering(companyId);
+  const userStats = {
+    totalDeleted: users.length,
+    recoverable: users.filter(u => new Date(u.deleted_at) > thirtyDaysAgo).length,
+    permanentlyDeleted: users.filter(u => new Date(u.deleted_at) <= thirtyDaysAgo).length,
+  };
+
+  // Recover company
+  const recoverCompany = async (companyId: string) => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/admin/recover-company', {
+      const response = await fetch(`/api/admin/companies/${companyId}/recover`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId }),
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success(result.message);
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Failed to recover company');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to recover company');
       }
+
+      toast.success('Company recovered successfully');
+      setCompanies(prev => prev.filter(c => c.id !== companyId));
     } catch (error) {
       console.error('Error recovering company:', error);
-      toast.error('An error occurred while recovering the company');
+      toast.error(error instanceof Error ? error.message : 'Failed to recover company');
     } finally {
-      setIsRecovering(null);
+      setLoading(false);
     }
   };
 
-  const handlePermanentDelete = async (companyId: string) => {
+  // Permanently delete company
+  const permanentlyDeleteCompany = async (companyId: string) => {
     if (!confirm('Are you sure you want to permanently delete this company? This action cannot be undone.')) {
       return;
     }
 
-    setIsPermanentlyDeleting(companyId);
+    setLoading(true);
     try {
-      const response = await fetch('/api/admin/permanently-delete-company', {
+      const response = await fetch(`/api/admin/companies/${companyId}/permanently-delete`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId }),
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success(result.message);
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Failed to permanently delete company');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to permanently delete company');
       }
+
+      toast.success('Company permanently deleted');
+      setCompanies(prev => prev.filter(c => c.id !== companyId));
     } catch (error) {
       console.error('Error permanently deleting company:', error);
-      toast.error('An error occurred while permanently deleting the company');
+      toast.error(error instanceof Error ? error.message : 'Failed to permanently delete company');
     } finally {
-      setIsPermanentlyDeleting(null);
+      setLoading(false);
     }
   };
 
-  if (deletedCompanies.length === 0) {
-    return (
-      <Card>
-        <CardContent className="text-center py-8">
-          <Trash2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">No deleted companies found.</p>
-          <p className="text-sm text-gray-500">The recycling bin is empty.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Recover user
+  const recoverUser = async (userId: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/recover`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to recover user');
+      }
+
+      toast.success('User recovered successfully');
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (error) {
+      console.error('Error recovering user:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to recover user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Permanently delete user
+  const permanentlyDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/permanently-delete`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to permanently delete user');
+      }
+
+      toast.success('User permanently deleted');
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (error) {
+      console.error('Error permanently deleting user:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to permanently delete user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get role badge color
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'site_admin': return 'bg-purple-100 text-purple-800';
+      case 'company_admin': return 'bg-green-100 text-green-800';
+      case 'trainee': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Check if item is recoverable
+  const isRecoverable = (deletedAt: string) => {
+    return new Date(deletedAt) > thirtyDaysAgo;
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trash2 className="h-5 w-5" />
-          Deleted Companies ({deletedCompanies.length})
-        </CardTitle>
-        <CardDescription>
-          Manage deleted companies and recovery options. Companies can be recovered within 30 days.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {deletedCompanies.map((company) => {
-            const recoverable = isRecoverable(company.deleted_at);
-            const daysLeft = recoverable 
-              ? Math.ceil((new Date(company.deleted_at).getTime() + (30 * 24 * 60 * 60 * 1000) - new Date().getTime()) / (24 * 60 * 60 * 1000))
-              : 0;
+    <div className="space-y-6">
+      {/* Stats Overview */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Deleted</CardTitle>
+            <Trash2 className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{companyStats.totalDeleted + userStats.totalDeleted}</div>
+            <p className="text-xs text-gray-500">Companies + Users</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Recoverable</CardTitle>
+            <Clock className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{companyStats.recoverable + userStats.recoverable}</div>
+            <p className="text-xs text-gray-500">Within 30 days</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Permanently Deleted</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{companyStats.permanentlyDeleted + userStats.permanentlyDeleted}</div>
+            <p className="text-xs text-gray-500">Over 30 days old</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Companies</CardTitle>
+            <Building className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{companyStats.totalDeleted}</div>
+            <p className="text-xs text-gray-500">Deleted companies</p>
+          </CardContent>
+        </Card>
+      </div>
 
-            return (
-              <div
-                key={company.id}
-                className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                  recoverable 
-                    ? 'bg-green-50 border-green-200 hover:bg-green-100' 
-                    : 'bg-red-50 border-red-200 hover:bg-red-100'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    recoverable ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    <Building className={`h-6 w-6 ${recoverable ? 'text-green-600' : 'text-red-600'}`} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-medium text-gray-900">{company.name}</h3>
-                      <Badge variant={recoverable ? 'default' : 'destructive'}>
-                        {recoverable ? 'Recoverable' : 'Expired'}
-                      </Badge>
-                      {recoverable && daysLeft > 0 && (
-                        <Badge variant="outline" className="text-orange-600">
-                          {daysLeft} days left
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600">{company.slug}</p>
-                    {company.description && (
-                      <p className="text-sm text-gray-500 mt-1">{company.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        Created {format(new Date(company.created_at), 'MMM d, yyyy')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Trash2 className="h-3 w-3" />
-                        Deleted {formatDistanceToNow(new Date(company.deleted_at))} ago
-                      </div>
-                      {company.deleted_by_user && (
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          By {company.deleted_by_user.name}
+      {/* Recycling Bin Tabs */}
+      <Tabs defaultValue="companies" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="companies" className="flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            Companies ({companyStats.totalDeleted})
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Users ({userStats.totalDeleted})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Companies Tab */}
+        <TabsContent value="companies" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Deleted Companies</CardTitle>
+              <CardDescription>
+                Manage deleted companies. Items can be recovered within 30 days of deletion.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {companies.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No deleted companies found
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {companies.map((company) => (
+                    <div
+                      key={company.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-red-100 rounded-lg">
+                          <Building className="h-5 w-5 text-red-600" />
                         </div>
-                      )}
-                    </div>
-                    {company.deleted_reason && (
-                      <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
-                        <strong>Reason:</strong> {company.deleted_reason}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">{company.name}</h3>
+                            <Badge variant="outline" className="text-xs">
+                              {company.slug}
+                            </Badge>
+                            {isRecoverable(company.deleted_at) ? (
+                              <Badge className="bg-green-100 text-green-800">Recoverable</Badge>
+                            ) : (
+                              <Badge variant="destructive">Expired</Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            <div className="flex items-center gap-4">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Deleted {formatDistanceToNow(new Date(company.deleted_at), { addSuffix: true })}
+                              </span>
+                              {company.deleted_reason && (
+                                <span>Reason: {company.deleted_reason}</span>
+                              )}
+                            </div>
+                            {company.description && (
+                              <p className="mt-1">{company.description}</p>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
+                      <div className="flex items-center gap-2">
+                        {isRecoverable(company.deleted_at) && (
+                          <Button
+                            onClick={() => recoverCompany(company.id)}
+                            variant="outline"
+                            size="sm"
+                            disabled={loading}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Recover
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => permanentlyDeleteCompany(company.id)}
+                          variant="destructive"
+                          size="sm"
+                          disabled={loading}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Delete Forever
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  {recoverable ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRecover(company.id)}
-                      disabled={isRecovering === company.id}
-                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                    >
-                      {isRecovering === company.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></div>
-                          Recovering...
-                        </>
-                      ) : (
-                        <>
-                          <RotateCcw className="h-4 w-4 mr-2" />
-                          Recover
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePermanentDelete(company.id)}
-                      disabled={isPermanentlyDeleting === company.id}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      {isPermanentlyDeleting === company.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
-                          Deleting...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Permanently
-                        </>
-                      )}
-                    </Button>
-                  )}
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Deleted Users</CardTitle>
+              <CardDescription>
+                Manage deleted users. Items can be recovered within 30 days of deletion.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {users.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No deleted users found
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              ) : (
+                <div className="space-y-4">
+                  {users.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-red-100 rounded-lg">
+                          <User className="h-5 w-5 text-red-600" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">
+                              {user.first_name && user.last_name 
+                                ? `${user.first_name} ${user.last_name}`
+                                : user.email
+                              }
+                            </h3>
+                            <Badge className={getRoleBadgeColor(user.role)}>
+                              {user.role.replace('_', ' ')}
+                            </Badge>
+                            {isRecoverable(user.deleted_at) ? (
+                              <Badge className="bg-green-100 text-green-800">Recoverable</Badge>
+                            ) : (
+                              <Badge variant="destructive">Expired</Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            <div className="flex items-center gap-4">
+                              <span>{user.email}</span>
+                              {user.company_name && (
+                                <span>• {user.company_name}</span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Deleted {formatDistanceToNow(new Date(user.deleted_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            {user.deleted_reason && (
+                              <p className="mt-1">Reason: {user.deleted_reason}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isRecoverable(user.deleted_at) && (
+                          <Button
+                            onClick={() => recoverUser(user.id)}
+                            variant="outline"
+                            size="sm"
+                            disabled={loading}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Recover
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => permanentlyDeleteUser(user.id)}
+                          variant="destructive"
+                          size="sm"
+                          disabled={loading}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Delete Forever
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
-} 
+}
