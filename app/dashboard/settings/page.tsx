@@ -133,251 +133,337 @@ export default function Settings() {
   const completionPercentage = getProfileCompletionPercentage();
 
   return (
-    <div className="flex justify-start items-start flex-wrap px-4 pt-5 gap-6">
-      <div className="flex flex-col gap-6 mb-[5rem] w-full max-w-[800px]">
-        <div className="flex items-center justify-between">
-          <div>
-        <h2 className="mt-10 scroll-m-20 border-b pb-2 w-full text-3xl font-semibold tracking-tight transition-colors first:mt-0">
-          My Profile
-        </h2>
-            <p className="text-gray-600 mt-2">Manage your account settings and profile information</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {profile?.profile_completed ? (
-              <Badge className="bg-green-100 text-green-800">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Profile Complete
-              </Badge>
-            ) : (
-              <Badge variant="secondary">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                {completionPercentage}% Complete
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Profile Completion Progress */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Profile Completion
-            </CardTitle>
-            <CardDescription>
-              Complete your profile to get the most out of Expert Ease
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span>Profile Progress</span>
-                <span>{completionPercentage}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${completionPercentage}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-gray-500">
-                {completionPercentage < 100 
-                  ? "Add more information to complete your profile" 
-                  : "Great! Your profile is complete"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Account Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Information</CardTitle>
-            <CardDescription>Your basic account details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Enhanced Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div>
-                <Label>Email</Label>
-                <Input disabled value={user?.emailAddresses?.[0]?.emailAddress || ''} />
+                <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+                  <User className="h-8 w-8" />
+                  Profile Settings
+                </h1>
+                <p className="text-blue-100 text-lg">Manage your account settings and profile information</p>
               </div>
-              <div>
-                <Label>Role</Label>
-                <Input disabled value={profile?.role?.replace('_', ' ') || 'Trainee'} />
+              <div className="flex items-center gap-3">
+                {profile?.profile_completed ? (
+                  <Badge className="bg-green-500 text-white px-4 py-2 text-sm font-medium">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Profile Complete
+                  </Badge>
+                ) : (
+                  <Badge className="bg-yellow-500 text-white px-4 py-2 text-sm font-medium">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    {completionPercentage}% Complete
+                  </Badge>
+                )}
               </div>
             </div>
-            {profile?.company_name && (
-              <div>
-                <Label>Company</Label>
-                <Input disabled value={profile.company_name} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Profile Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Details</CardTitle>
-            <CardDescription>Update your personal and professional information</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Personal Information */}
-              <div>
-                <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Personal Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="first_name">First Name *</Label>
-                    <Input
-                      id="first_name"
-                      value={formData.first_name}
-                      onChange={(e) => handleInputChange('first_name', e.target.value)}
-                      placeholder="Enter your first name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="last_name">Last Name *</Label>
-                    <Input
-                      id="last_name"
-                      value={formData.last_name}
-                      onChange={(e) => handleInputChange('last_name', e.target.value)}
-                      placeholder="Enter your last name"
-                    />
+          {/* Enhanced Profile Completion Progress */}
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-900">
+                <User className="h-5 w-5 text-blue-600" />
+                Profile Completion
+              </CardTitle>
+              <CardDescription className="text-blue-700">
+                Complete your profile to get the most out of Expert Ease
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-blue-900">Profile Progress</span>
+                  <span className="text-2xl font-bold text-blue-600">{completionPercentage}%</span>
+                </div>
+                <div className="w-full bg-blue-100 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full transition-all duration-500 ease-out relative" 
+                    style={{ width: `${completionPercentage}%` }}
+                  >
+                    <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      placeholder="+1 (555) 123-4567"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                      placeholder="City, Country"
-                    />
-                  </div>
+                <div className="flex items-center gap-2">
+                  {completionPercentage < 100 ? (
+                    <>
+                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                      <p className="text-sm text-blue-700">
+                        Add more information to complete your profile
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <p className="text-sm text-green-700 font-medium">
+                        Excellent! Your profile is complete
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <Separator />
-
-              {/* Professional Information */}
-              <div>
-                <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  Professional Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="job_title">Job Title</Label>
-                    <Input
-                      id="job_title"
-                      value={formData.job_title}
-                      onChange={(e) => handleInputChange('job_title', e.target.value)}
-                      placeholder="e.g., Software Engineer"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="department">Department</Label>
-                    <Input
-                      id="department"
-                      value={formData.department}
-                      onChange={(e) => handleInputChange('department', e.target.value)}
-                      placeholder="e.g., Engineering"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Preferences */}
-              <div>
-                <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  Preferences
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="timezone">Timezone</Label>
-                    <Select value={formData.timezone} onValueChange={(value) => handleInputChange('timezone', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select timezone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                        <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                        <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                        <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                        <SelectItem value="Europe/London">London (GMT)</SelectItem>
-                        <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
-                        <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
-                        <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="preferred_language">Preferred Language</Label>
-                    <Select value={formData.preferred_language} onValueChange={(value) => handleInputChange('preferred_language', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="es">Spanish</SelectItem>
-                        <SelectItem value="fr">French</SelectItem>
-                        <SelectItem value="de">German</SelectItem>
-                        <SelectItem value="it">Italian</SelectItem>
-                        <SelectItem value="pt">Portuguese</SelectItem>
-                        <SelectItem value="ja">Japanese</SelectItem>
-                        <SelectItem value="ko">Korean</SelectItem>
-                        <SelectItem value="zh">Chinese</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Bio */}
-              <div>
-                <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  About Me
-                </h3>
-                <div>
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    value={formData.bio}
-                    onChange={(e) => handleInputChange('bio', e.target.value)}
-                    placeholder="Tell us about yourself, your experience, and what you're looking to learn..."
-                    rows={4}
+          {/* Enhanced Account Information */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5 text-green-600" />
+                Account Information
+              </CardTitle>
+              <CardDescription>Your basic account details and organization information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                  <Input 
+                    disabled 
+                    value={user?.emailAddresses?.[0]?.emailAddress || ''} 
+                    className="bg-gray-50 border-gray-200"
                   />
-          </div>
-        </div>
-
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Saving..." : "Save Changes"}
-                </Button>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Role</Label>
+                  <Input 
+                    disabled 
+                    value={profile?.role?.replace('_', ' ') || 'Trainee'} 
+                    className="bg-gray-50 border-gray-200 capitalize"
+                  />
+                </div>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+              {profile?.company_name && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Company</Label>
+                  <Input 
+                    disabled 
+                    value={profile.company_name} 
+                    className="bg-gray-50 border-gray-200"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Enhanced Profile Form */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-purple-600" />
+                Profile Details
+              </CardTitle>
+              <CardDescription>Update your personal and professional information</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Enhanced Personal Information */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-3 text-blue-900">
+                    <div className="p-2 bg-blue-500 rounded-lg">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
+                    Personal Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name" className="text-sm font-medium text-gray-700">
+                        First Name *
+                      </Label>
+                      <Input
+                        id="first_name"
+                        value={formData.first_name}
+                        onChange={(e) => handleInputChange('first_name', e.target.value)}
+                        placeholder="Enter your first name"
+                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name" className="text-sm font-medium text-gray-700">
+                        Last Name *
+                      </Label>
+                      <Input
+                        id="last_name"
+                        value={formData.last_name}
+                        onChange={(e) => handleInputChange('last_name', e.target.value)}
+                        placeholder="Enter your last name"
+                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        Phone Number
+                      </Label>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        placeholder="+1 (555) 123-4567"
+                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Location
+                      </Label>
+                      <Input
+                        id="location"
+                        value={formData.location}
+                        onChange={(e) => handleInputChange('location', e.target.value)}
+                        placeholder="City, Country"
+                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Professional Information */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
+                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-3 text-green-900">
+                    <div className="p-2 bg-green-500 rounded-lg">
+                      <Briefcase className="h-4 w-4 text-white" />
+                    </div>
+                    Professional Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="job_title" className="text-sm font-medium text-gray-700">
+                        Job Title
+                      </Label>
+                      <Input
+                        id="job_title"
+                        value={formData.job_title}
+                        onChange={(e) => handleInputChange('job_title', e.target.value)}
+                        placeholder="e.g., Software Engineer"
+                        className="transition-all duration-200 focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="department" className="text-sm font-medium text-gray-700">
+                        Department
+                      </Label>
+                      <Input
+                        id="department"
+                        value={formData.department}
+                        onChange={(e) => handleInputChange('department', e.target.value)}
+                        placeholder="e.g., Engineering"
+                        className="transition-all duration-200 focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Preferences */}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
+                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-3 text-purple-900">
+                    <div className="p-2 bg-purple-500 rounded-lg">
+                      <Globe className="h-4 w-4 text-white" />
+                    </div>
+                    Preferences
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="timezone" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Timezone
+                      </Label>
+                      <Select value={formData.timezone} onValueChange={(value) => handleInputChange('timezone', value)}>
+                        <SelectTrigger className="transition-all duration-200 focus:ring-2 focus:ring-purple-500">
+                          <SelectValue placeholder="Select timezone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                          <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                          <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                          <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                          <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                          <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                          <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                          <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="preferred_language" className="text-sm font-medium text-gray-700">
+                        Preferred Language
+                      </Label>
+                      <Select value={formData.preferred_language} onValueChange={(value) => handleInputChange('preferred_language', value)}>
+                        <SelectTrigger className="transition-all duration-200 focus:ring-2 focus:ring-purple-500">
+                          <SelectValue placeholder="Select language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="es">Spanish</SelectItem>
+                          <SelectItem value="fr">French</SelectItem>
+                          <SelectItem value="de">German</SelectItem>
+                          <SelectItem value="it">Italian</SelectItem>
+                          <SelectItem value="pt">Portuguese</SelectItem>
+                          <SelectItem value="ja">Japanese</SelectItem>
+                          <SelectItem value="ko">Korean</SelectItem>
+                          <SelectItem value="zh">Chinese</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Bio Section */}
+                <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100">
+                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-3 text-orange-900">
+                    <div className="p-2 bg-orange-500 rounded-lg">
+                      <FileText className="h-4 w-4 text-white" />
+                    </div>
+                    About Me
+                  </h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="bio" className="text-sm font-medium text-gray-700">
+                      Bio
+                    </Label>
+                    <Textarea
+                      id="bio"
+                      value={formData.bio}
+                      onChange={(e) => handleInputChange('bio', e.target.value)}
+                      placeholder="Tell us about yourself, your experience, and what you're looking to learn..."
+                      rows={4}
+                      className="transition-all duration-200 focus:ring-2 focus:ring-orange-500 resize-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Share your background, interests, and goals to help others connect with you
+                    </p>
+                  </div>
+                </div>
+
+                {/* Enhanced Submit Button */}
+                <div className="flex justify-end pt-6">
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Saving Changes...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        Save Changes
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
