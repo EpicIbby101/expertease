@@ -28,8 +28,15 @@ export async function POST(
     const body = await request.json();
     const { is_active } = body;
 
+    // Get current user's ID to prevent self-deactivation
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+
     // Prevent site admins from deactivating themselves
-    if (targetUserId === userId && !is_active) {
+    if (currentUser && parseInt(targetUserId) === currentUser.id && !is_active) {
       return NextResponse.json({ error: 'Site admins cannot deactivate their own account' }, { status: 400 });
     }
 
@@ -37,7 +44,7 @@ export async function POST(
     const { data: existingUser } = await supabase
       .from('users')
       .select('*')
-      .eq('user_id', targetUserId)
+      .eq('id', targetUserId)
       .single();
 
     if (!existingUser) {
@@ -51,7 +58,7 @@ export async function POST(
         is_active,
         updated_at: new Date().toISOString()
       })
-      .eq('user_id', targetUserId);
+      .eq('id', targetUserId);
 
     if (updateError) {
       console.error('Error updating user status:', updateError);

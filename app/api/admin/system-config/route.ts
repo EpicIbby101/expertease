@@ -56,7 +56,7 @@ export async function PUT(request: NextRequest) {
       action: 'system_config_updated',
       resourceType: 'system_config',
       resourceId: key,
-      oldValues: null, // Could fetch old value if needed
+      oldValues: undefined, // Could fetch old value if needed
       newValues: { [key]: value },
       metadata: { key, value },
       ...AuditLogger.extractClientInfo(request)
@@ -99,7 +99,7 @@ export async function PATCH(request: NextRequest) {
       userId: currentUserId,
       action: 'system_config_updated',
       resourceType: 'system_config',
-      oldValues: null,
+      oldValues: undefined,
       newValues: configs,
       metadata: { configCount: Object.keys(configs).length },
       ...AuditLogger.extractClientInfo(request)

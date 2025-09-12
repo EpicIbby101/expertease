@@ -110,3 +110,4 @@ INSERT INTO system_config (key, value, description, category, data_type, is_publ
 ('feature_data_export', 'true', 'Enable data export functionality', 'features', 'boolean', false, false),
 ('feature_advanced_analytics', 'true', 'Enable advanced analytics dashboard', 'features', 'boolean', false, false)
 ON CONFLICT (key) DO NOTHING;
+

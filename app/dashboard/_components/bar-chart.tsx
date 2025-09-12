@@ -74,18 +74,6 @@ export function BarChartComponent() {
               dataKey="visitors"
               strokeWidth={2}
               radius={8}
-              activeIndex={2}
-              activeBar={({ ...props }) => {
-                return (
-                  <Rectangle
-                    {...props}
-                    fillOpacity={0.8}
-                    stroke={props.payload.fill}
-                    strokeDasharray={4}
-                    strokeDashoffset={4}
-                  />
-                );
-              }}
             />
           </BarChart>
         </ChartContainer>

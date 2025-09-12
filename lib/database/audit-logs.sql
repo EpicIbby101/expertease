@@ -56,3 +56,4 @@ ALTER TABLE audit_logs ADD COLUMN category audit_action_category DEFAULT 'user_m
 
 -- Index for category
 CREATE INDEX IF NOT EXISTS idx_audit_logs_category ON audit_logs(category);
+

@@ -527,3 +527,4 @@ export function AuditLogsDashboard({ initialLogs = [], totalCount = 0 }: AuditLo
     </div>
   );
 }
+

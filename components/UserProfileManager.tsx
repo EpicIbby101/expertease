@@ -18,7 +18,8 @@ import {
   EyeOff,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingButton } from '@/components/ui/loading-button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -187,6 +189,44 @@ export function UserProfileManager({ user, companies, onClose, onUserUpdated }: 
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!canEdit) {
+      toast.error('You cannot delete this user account');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${user.first_name && user.last_name 
+        ? `${user.first_name} ${user.last_name}` 
+        : user.email}? This action will move the user to the recycling bin and can be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Deleted by admin' }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete user');
+      }
+
+      toast.success('User deleted successfully and moved to recycling bin');
+      onUserUpdated();
+      onClose(); // Close the modal after successful deletion
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete user');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'site_admin': return 'bg-purple-100 text-purple-800';
@@ -214,9 +254,7 @@ export function UserProfileManager({ user, companies, onClose, onUserUpdated }: 
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric'
     });
   };
 
@@ -427,14 +465,26 @@ export function UserProfileManager({ user, companies, onClose, onUserUpdated }: 
                   <div className="flex items-center gap-2 mt-1">
                     {getStatusBadge(formData.is_active)}
                     {canEdit && (
-                      <Button
-                        onClick={handleToggleActive}
-                        variant="outline"
-                        size="sm"
-                        disabled={isLoading}
-                      >
-                        {formData.is_active ? 'Deactivate' : 'Activate'}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleToggleActive}
+                          variant="outline"
+                          size="sm"
+                          disabled={isLoading}
+                        >
+                          {formData.is_active ? 'Deactivate' : 'Activate'}
+                        </Button>
+                        <Button
+                          onClick={handleDeleteUser}
+                          variant="destructive"
+                          size="sm"
+                          disabled={isLoading}
+                          className="flex items-center gap-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Delete
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -466,28 +516,31 @@ export function UserProfileManager({ user, companies, onClose, onUserUpdated }: 
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="company">Company</Label>
-                  {isEditing ? (
-                    <select
-                      id="company"
-                      value={formData.company_id}
-                      onChange={(e) => handleInputChange('company_id', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select Company</option>
-                      {companies.map(company => (
-                        <option key={company.id} value={company.id}>
-                          {company.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="text-sm text-gray-400 py-2">
-                      {user.company_name || 'No company assigned'}
-                    </p>
-                  )}
-                </div>
+                 <div>
+                   <Label htmlFor="company">Company</Label>
+                   {isEditing ? (
+                     <Select
+                       value={formData.company_id || "none"}
+                       onValueChange={(value) => handleInputChange('company_id', value === "none" ? "" : value)}
+                     >
+                       <SelectTrigger>
+                         <SelectValue placeholder="Select Company" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="none">No Company</SelectItem>
+                         {companies.map(company => (
+                           <SelectItem key={company.id} value={company.id}>
+                             {company.name}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                   ) : (
+                     <p className="text-sm text-gray-400 py-2">
+                       {user.company_name || 'No company assigned'}
+                     </p>
+                   )}
+                 </div>
 
                 <div>
                   <Label>Account Created</Label>

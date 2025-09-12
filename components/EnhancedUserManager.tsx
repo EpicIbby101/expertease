@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,8 @@ interface User {
   phone?: string;
   job_title?: string;
   department?: string;
+  location?: string;
+  date_of_birth?: string;
   is_active?: boolean;
   profile_completed?: boolean;
   last_active_at?: string;
@@ -55,7 +57,7 @@ interface EnhancedUserManagerProps {
 }
 
 export function EnhancedUserManager({ users, companies, totalUsers, currentPage, pageSize, isLoading = false }: EnhancedUserManagerProps) {
-  const { userId } = useAuth();
+  const { userId: currentUserId } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,7 +112,7 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
   // Action functions
   const updateRole = async (userId: string, newRole: 'site_admin' | 'company_admin' | 'trainee') => {
     // Prevent site admins from downgrading themselves
-    if (userId === userId && newRole !== 'site_admin') {
+    if (userId === currentUserId && newRole !== 'site_admin') {
       toast.error('Site admins cannot downgrade their own role');
       return;
     }
@@ -150,7 +152,14 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
   };
 
   const selectAllUsers = () => {
-            setSelectedUsers(new Set((filteredUsers || []).map(u => u.id)));
+    const allSelected = selectedUsers.size === (filteredUsers?.length || 0) && (filteredUsers?.length || 0) > 0;
+    if (allSelected) {
+      // If all are selected, deselect all
+      setSelectedUsers(new Set());
+    } else {
+      // If not all are selected, select all
+      setSelectedUsers(new Set((filteredUsers || []).map(u => u.id)));
+    }
   };
 
   const clearSelection = () => {
@@ -164,7 +173,7 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
     }
 
     // Prevent bulk downgrading if current user is selected
-    if (selectedUsers.has(userId!) && newRole !== 'site_admin') {
+    if (selectedUsers.has(currentUserId!) && newRole !== 'site_admin') {
       toast.error('Cannot downgrade your own role in bulk operations');
       return;
     }
@@ -234,7 +243,7 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
     }
   };
 
-  const isCurrentUser = (user: User) => user.id === userId;
+  const isCurrentUser = (user: User) => user.id === currentUserId;
 
   // Generate page numbers for pagination
   const getPageNumbers = () => {
@@ -325,45 +334,84 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
         </LoadingButton>
       </div>
 
-      {/* Bulk Actions */}
+      {/* Enhanced Bulk Actions */}
       {selectedUsers.size > 0 && (
-        <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg">
-          <span className="text-sm text-blue-800">
-            {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''} selected
-          </span>
-          <LoadingButton
-            onClick={() => bulkUpdateRole('site_admin')}
-            size="sm"
-            variant="outline"
-            loading={updating === 'bulk'}
-            loadingText="Updating..."
-          >
-            <UserCheck className="h-4 w-4 mr-1" />
-            Make Site Admin
-          </LoadingButton>
-          <LoadingButton
-            onClick={() => bulkUpdateRole('company_admin')}
-            size="sm"
-            variant="outline"
-            loading={updating === 'bulk'}
-            loadingText="Updating..."
-          >
-            <UserCheck className="h-4 w-4 mr-1" />
-            Make Company Admin
-          </LoadingButton>
-          <LoadingButton
-            onClick={() => bulkUpdateRole('trainee')}
-            size="sm"
-            variant="outline"
-            loading={updating === 'bulk'}
-            loadingText="Updating..."
-          >
-            <UserCheck className="h-4 w-4 mr-1" />
-            Make Trainee
-          </LoadingButton>
-          <Button onClick={clearSelection} size="sm" variant="ghost">
-            Clear
-          </Button>
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <UserCheck className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-blue-900">
+                  {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''} selected
+                </p>
+                <p className="text-xs text-blue-600">Choose a bulk action to apply</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 mr-2">Change role to:</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  disabled={updating === 'bulk'}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {updating === 'bulk' ? (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="h-3 w-3 mr-2" />
+                      Update Roles
+                    </>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem 
+                  onClick={() => bulkUpdateRole('site_admin')}
+                  className="flex items-center gap-2"
+                >
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  Site Admin
+                  <span className="text-xs text-gray-500 ml-auto">Highest</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => bulkUpdateRole('company_admin')}
+                  className="flex items-center gap-2"
+                >
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  Company Admin
+                  <span className="text-xs text-gray-500 ml-auto">Medium</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => bulkUpdateRole('trainee')}
+                  className="flex items-center gap-2"
+                >
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Trainee
+                  <span className="text-xs text-gray-500 ml-auto">Standard</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button 
+              onClick={clearSelection} 
+              size="sm" 
+              variant="ghost"
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <XCircle className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+          </div>
         </div>
       )}
 
@@ -446,9 +494,14 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
                         : 'Name not set'
                       }
                     </div>
-                    {user.phone && (
-                      <div className="text-xs text-gray-400">{user.phone}</div>
-                    )}
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {user.phone && (
+                        <span className="text-xs text-gray-400">📞 {user.phone}</span>
+                      )}
+                      {user.location && (
+                        <span className="text-xs text-gray-400">📍 {user.location}</span>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -529,7 +582,7 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
       {/* Pagination Controls */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-gray-500">
             Showing {startUser} to {endUser} of {totalUsers} results
           </div>
           

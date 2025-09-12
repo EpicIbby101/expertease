@@ -175,3 +175,4 @@ function calculateSecurityMetrics(users: any[], issues: any[]) {
     suspiciousActivities
   };
 }
+

@@ -48,21 +48,48 @@ export async function PUT(
     const { data: existingUser } = await supabase
       .from('users')
       .select('*')
-      .eq('user_id', targetUserId)
+      .eq('id', targetUserId)
       .single();
 
     if (!existingUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get current user's ID to prevent self-downgrade
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+
     // Prevent site admins from downgrading themselves
-    if (targetUserId === userId && role !== 'site_admin') {
+    if (currentUser && parseInt(targetUserId) === currentUser.id && role !== 'site_admin') {
       return NextResponse.json({ error: 'Site admins cannot downgrade their own role' }, { status: 400 });
     }
 
     // Validate company assignment for trainee role
     if (role === 'trainee' && !company_id) {
       return NextResponse.json({ error: 'Trainees must be assigned to a company' }, { status: 400 });
+    }
+
+    // Validate company exists and get company name (if company_id provided)
+    let company_name = null;
+    if (company_id) {
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('id, name, deleted_at')
+        .eq('id', company_id)
+        .single();
+
+      if (companyError || !companyData) {
+        return NextResponse.json({ error: 'Company not found' }, { status: 400 });
+      }
+
+      if (companyData.deleted_at) {
+        return NextResponse.json({ error: 'Cannot assign users to deleted companies' }, { status: 400 });
+      }
+
+      company_name = companyData.name;
     }
 
     // Update user profile
@@ -77,12 +104,13 @@ export async function PUT(
         location: location?.trim() || null,
         date_of_birth: date_of_birth || null,
         company_id: company_id || null,
+        company_name: company_name,
         role,
         is_active,
         updated_at: new Date().toISOString(),
         profile_completed: true
       })
-      .eq('user_id', targetUserId);
+      .eq('id', targetUserId);
 
     if (updateError) {
       console.error('Error updating user profile:', updateError);

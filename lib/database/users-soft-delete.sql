@@ -12,3 +12,4 @@ CREATE INDEX IF NOT EXISTS idx_users_deleted_by ON users(deleted_by);
 
 -- Update existing queries to filter out soft-deleted users
 -- Note: This is handled in the application code by adding .is('deleted_at', null) to queries
+

@@ -66,6 +66,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Last name must be at least 2 characters' }, { status: 400 });
     }
 
+    // Company validation for company_admin and trainee roles
+    if ((role === 'company_admin' || role === 'trainee') && !companyId) {
+      return NextResponse.json({ error: 'Company is required for company admin and trainee roles' }, { status: 400 });
+    }
+
+    // Validate company exists and is not deleted (if companyId is provided)
+    if (companyId) {
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('id, name, deleted_at')
+        .eq('id', companyId)
+        .single();
+
+      if (companyError || !companyData) {
+        return NextResponse.json({ error: 'Company not found' }, { status: 400 });
+      }
+
+      if (companyData.deleted_at) {
+        return NextResponse.json({ error: 'Cannot assign users to deleted companies' }, { status: 400 });
+      }
+    }
+
     // Check if user already exists in Supabase
     const { data: existingUser } = await supabase
       .from('users')
@@ -92,10 +114,22 @@ export async function POST(request: NextRequest) {
     // Create a unique invitation token for the redirect URL
     const invitationToken = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
+    // Get company name if companyId is provided
+    let companyName = null;
+    if (companyId) {
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', companyId)
+        .single();
+      companyName = companyData?.name || null;
+    }
+
     // Create Clerk invitation with metadata
     const invitationMetadata = {
       role,
       company_id: companyId || null,
+      company_name: companyName, // Include company name
       first_name: first_name.trim(),
       last_name: last_name.trim(),
       phone: phone?.trim() || null,
@@ -131,6 +165,7 @@ export async function POST(request: NextRequest) {
         email,
         role,
         company_id: companyId || null,
+        company_name: companyName, // Include company name
         invited_by: userId,
         clerk_invitation_id: clerkInvitation.id,
         token: invitationToken, // Store the unique token

@@ -25,12 +25,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const limit = parseInt(resolvedSearchParams.limit || '10');
   const offset = (page - 1) * limit;
 
-  // Fetch total count for pagination
+  // Fetch total count for pagination (exclude soft-deleted)
   const { count: totalUsers } = await supabase
     .from('users')
-    .select('*', { count: 'exact', head: true });
+    .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null);
 
-  // Fetch paginated users
+  // Fetch paginated users (exclude soft-deleted)
   const { data: users, error } = await supabase
     .from('users')
     .select(`
@@ -44,10 +45,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       phone,
       job_title,
       department,
+      location,
+      date_of_birth,
       is_active,
       profile_completed,
       last_active_at
     `)
+    .is('deleted_at', null) // Exclude soft-deleted users
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -78,10 +82,11 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     deletedUsers = [];
   }
 
-  // Fetch companies for the invite modal
+  // Fetch companies for the invite modal (exclude deleted companies)
   const { data: companies } = await supabase
     .from('companies')
-    .select('id, name')
+    .select('id, name, slug, max_trainees, is_active')
+    .is('deleted_at', null) // Only get non-deleted companies
     .order('name');
 
   // Debug logging
@@ -230,7 +235,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
             
             <EnhancedUserManager 
               users={users || []} 
-              companies={uniqueCompanies}
+              companies={companies || []}
               totalUsers={totalUsers || 0}
               currentPage={page}
               pageSize={limit}
