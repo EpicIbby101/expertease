@@ -150,148 +150,261 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Analytics Dashboard</h2>
-          <p className="text-gray-400">Platform insights and performance metrics</p>
-        </div>
-        <div className="flex gap-2">
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="1y">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={() => fetchData(activeTab)} variant="outline" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button onClick={exportData} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+      {/* Enhanced Header */}
+      <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-lg p-6 border border-blue-200/20">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+              <BarChart3 className="h-8 w-8 text-blue-400" />
+              Analytics Dashboard
+            </h2>
+            <p className="text-gray-300 mt-2">Comprehensive platform insights and performance metrics</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-[160px] bg-white/10 border-white/20 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+                <SelectItem value="1y">Last year</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={() => fetchData(activeTab)} 
+              variant="outline" 
+              disabled={loading}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button 
+              onClick={exportData} 
+              variant="outline"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Overview Cards */}
+      {/* Enhanced Overview Cards */}
       {data.overview && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-blue-900">Total Users</CardTitle>
+              <div className="p-2 bg-blue-500 rounded-lg">
+                <Users className="h-4 w-4 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(data.overview.totalUsers)}</div>
-              <p className="text-xs text-muted-foreground">
-                +{data.overview.recentUsers} this period ({data.overview.userGrowthRate}% growth)
-              </p>
+              <div className="text-3xl font-bold text-blue-900 mb-1">{formatNumber(data.overview.totalUsers)}</div>
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3 text-green-600" />
+                <p className="text-xs text-green-600 font-medium">
+                  +{data.overview.recentUsers} ({data.overview.userGrowthRate}% growth)
+                </p>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Companies</CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-green-900">Total Companies</CardTitle>
+              <div className="p-2 bg-green-500 rounded-lg">
+                <Building className="h-4 w-4 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(data.overview.totalCompanies)}</div>
-              <p className="text-xs text-muted-foreground">
-                +{data.overview.recentCompanies} this period ({data.overview.companyGrowthRate}% growth)
-              </p>
+              <div className="text-3xl font-bold text-green-900 mb-1">{formatNumber(data.overview.totalCompanies)}</div>
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3 text-green-600" />
+                <p className="text-xs text-green-600 font-medium">
+                  +{data.overview.recentCompanies} ({data.overview.companyGrowthRate}% growth)
+                </p>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-purple-900">Active Users</CardTitle>
+              <div className="p-2 bg-purple-500 rounded-lg">
+                <Activity className="h-4 w-4 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(data.overview.activeUsers)}</div>
-              <p className="text-xs text-muted-foreground">
-                {Math.round((data.overview.activeUsers / data.overview.totalUsers) * 100)}% of total
-              </p>
+              <div className="text-3xl font-bold text-purple-900 mb-1">{formatNumber(data.overview.activeUsers)}</div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <p className="text-xs text-purple-600 font-medium">
+                  {Math.round((data.overview.activeUsers / data.overview.totalUsers) * 100)}% of total users
+                </p>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Companies</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-orange-900">Active Companies</CardTitle>
+              <div className="p-2 bg-orange-500 rounded-lg">
+                <TrendingUp className="h-4 w-4 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(data.overview.activeCompanies)}</div>
-              <p className="text-xs text-muted-foreground">
-                {Math.round((data.overview.activeCompanies / data.overview.totalCompanies) * 100)}% of total
-              </p>
+              <div className="text-3xl font-bold text-orange-900 mb-1">{formatNumber(data.overview.activeCompanies)}</div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                <p className="text-xs text-orange-600 font-medium">
+                  {Math.round((data.overview.activeCompanies / data.overview.totalCompanies) * 100)}% of total companies
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Detailed Analytics Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="companies">Companies</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="growth">Growth</TabsTrigger>
-          <TabsTrigger value="usage">Usage</TabsTrigger>
-        </TabsList>
+      {/* Simplified Analytics Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="flex items-center justify-between">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="growth" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Growth Trends
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="flex items-center gap-2">
+              <PieChartIcon className="h-4 w-4" />
+              Insights
+            </TabsTrigger>
+          </TabsList>
+          <div className="text-sm text-gray-400">
+            Showing data for the last {period}
+          </div>
+        </div>
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle>User Growth</CardTitle>
-                <CardDescription>User registrations over time</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  User Growth Trend
+                </CardTitle>
+                <CardDescription>Daily user registrations over the selected period</CardDescription>
               </CardHeader>
               <CardContent>
                 {data.userMetrics?.registrationsOverTime ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={data.userMetrics.registrationsOverTime}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" tickFormatter={formatDate} />
-                      <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
-                      <Area type="monotone" dataKey="count" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                  <ResponsiveContainer width="100%" height={320}>
+                    <AreaChart data={data.userMetrics.registrationsOverTime} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="userGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={formatDate}
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                        labelFormatter={formatDate}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="count" 
+                        stroke="#3b82f6" 
+                        strokeWidth={2}
+                        fill="url(#userGradient)" 
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
-                    No data available
+                  <div className="h-[320px] flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <Users className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                      <p>No user data available</p>
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle>Company Growth</CardTitle>
-                <CardDescription>Company registrations over time</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5 text-green-600" />
+                  Company Growth Trend
+                </CardTitle>
+                <CardDescription>Daily company registrations over the selected period</CardDescription>
               </CardHeader>
               <CardContent>
                 {data.companyMetrics?.registrationsOverTime ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={data.companyMetrics.registrationsOverTime}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" tickFormatter={formatDate} />
-                      <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
-                      <Area type="monotone" dataKey="count" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} />
+                  <ResponsiveContainer width="100%" height={320}>
+                    <AreaChart data={data.companyMetrics.registrationsOverTime} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="companyGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={formatDate}
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                        labelFormatter={formatDate}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="count" 
+                        stroke="#10b981" 
+                        strokeWidth={2}
+                        fill="url(#companyGradient)" 
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
-                    No data available
+                  <div className="h-[320px] flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <Building className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                      <p>No company data available</p>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -299,40 +412,126 @@ export function AnalyticsDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="users" className="space-y-6">
+        <TabsContent value="growth" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle>User Registrations</CardTitle>
-                <CardDescription>Daily user registrations</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                  User Growth Analysis
+                </CardTitle>
+                <CardDescription>Detailed user registration patterns and trends</CardDescription>
               </CardHeader>
               <CardContent>
                 {data.userMetrics?.registrationsOverTime ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={data.userMetrics.registrationsOverTime}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" tickFormatter={formatDate} />
-                      <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
-                      <Bar dataKey="count" fill="#8884d8" />
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart data={data.userMetrics.registrationsOverTime} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={formatDate}
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                        labelFormatter={formatDate}
+                      />
+                      <Bar 
+                        dataKey="count" 
+                        fill="#8b5cf6"
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
-                    No data available
+                  <div className="h-[320px] flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <TrendingUp className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                      <p>No growth data available</p>
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle>Role Distribution</CardTitle>
-                <CardDescription>Distribution of user roles</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5 text-green-600" />
+                  Company Growth Analysis
+                </CardTitle>
+                <CardDescription>Company registration trends and patterns</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {data.companyMetrics?.registrationsOverTime ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <LineChart data={data.companyMetrics.registrationsOverTime} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={formatDate}
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                        labelFormatter={formatDate}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="count" 
+                        stroke="#10b981" 
+                        strokeWidth={3}
+                        dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[320px] flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <Building className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                      <p>No company growth data available</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="insights" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PieChartIcon className="h-5 w-5 text-purple-600" />
+                  User Role Distribution
+                </CardTitle>
+                <CardDescription>Breakdown of users by role type</CardDescription>
               </CardHeader>
               <CardContent>
                 {data.userMetrics?.roleDistribution && data.userMetrics.roleDistribution.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={320}>
                     <PieChart>
                       <Pie
                         data={data.userMetrics.roleDistribution}
@@ -340,48 +539,30 @@ export function AnalyticsDashboard() {
                         cy="50%"
                         labelLine={false}
                         label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
+                        outerRadius={100}
+                        fill="#8b5cf6"
                         dataKey="value"
                       >
                         {data.userMetrics.roleDistribution.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
-                    No data available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="companies" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Company Registrations</CardTitle>
-                <CardDescription>Daily company registrations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {data.companyMetrics?.registrationsOverTime ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={data.companyMetrics.registrationsOverTime}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" tickFormatter={formatDate} />
-                      <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
-                      <Line type="monotone" dataKey="count" stroke="#82ca9d" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
-                    No data available
+                  <div className="h-[320px] flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <Users className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                      <p>No role distribution data available</p>
+                    </div>
                   </div>
                 )}
               </CardContent>

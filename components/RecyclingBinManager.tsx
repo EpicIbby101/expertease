@@ -335,7 +335,7 @@ export function RecyclingBinManager({
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Users className="h-8 w-8 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No deleted users</h3>
+                  <h3 className="text-lg font-medium text-white mb-2">No deleted users</h3>
                   <p className="text-gray-500">All users are currently active</p>
                 </div>
               ) : (

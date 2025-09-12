@@ -2,8 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { RoleGate } from '@/components/RoleGate';
 import { CompanyManager } from '@/components/CompanyManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building, Users, Award, RefreshCw, Trash2 } from 'lucide-react';
+import { Building, Users, Award, RefreshCw, Trash2, Download, Settings, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -71,27 +72,48 @@ export default async function AdminCompaniesPage() {
   return (
     <RoleGate requiredRole="site_admin">
       <div className="space-y-6">
-        {/* Page Header */}
+        {/* Enhanced Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">Company Management</h1>
             <p className="text-gray-600 mt-1">Manage companies and their administrators</p>
           </div>
-          <div className="flex gap-2">
-            <a
-              href="/admin/companies"
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </a>
-            <Link
-              href="/admin/recycling-bin"
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Recycling Bin
-            </Link>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <Building className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-gray-900">{stats.totalCompanies}</span>
+                <span>total</span>
+              </div>
+              <div className="h-4 w-px bg-gray-300"></div>
+              <div className="flex items-center gap-2">
+                <Award className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-green-600">{stats.activeCompanies}</span>
+                <span>active</span>
+              </div>
+              <div className="h-4 w-px bg-gray-300"></div>
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-orange-600" />
+                <span className="font-medium text-orange-600">{stats.totalTrainees}</span>
+                <span>trainees</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+              <Link href="/admin/recycling-bin">
+                <Button variant="outline" size="sm" className="flex items-center gap-2 text-red-600 hover:text-red-700">
+                  <Trash2 className="h-4 w-4" />
+                  Recycling Bin
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -104,39 +126,6 @@ export default async function AdminCompaniesPage() {
           </div>
         )}
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Companies</CardTitle>
-              <Building className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.totalCompanies}</div>
-              <p className="text-xs text-gray-500 mt-1">Registered companies</p>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Active Companies</CardTitle>
-              <Award className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.activeCompanies}</div>
-              <p className="text-xs text-gray-500 mt-1">Currently active</p>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Trainees</CardTitle>
-              <Users className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.totalTrainees}</div>
-              <p className="text-xs text-gray-500 mt-1">Across all companies</p>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Company Management */}
         <CompanyManager companies={companiesWithUsers || []} />

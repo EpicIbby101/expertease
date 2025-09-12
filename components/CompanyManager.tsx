@@ -4,12 +4,16 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { Building, Plus, Trash2, Users, Calendar, Settings, RefreshCw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Building, Plus, Trash2, Users, Calendar, Settings, RefreshCw, Edit, Eye, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { CreateCompanyModal } from './CreateCompanyModal';
 import { DeleteCompanyModal } from './DeleteCompanyModal';
+import { ViewCompanyModal } from './ViewCompanyModal';
+import { EditCompanyModal } from './EditCompanyModal';
 
 interface Company {
   id: string;
@@ -32,6 +36,10 @@ export function CompanyManager({ companies }: CompanyManagerProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [companyToView, setCompanyToView] = useState<Company | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
 
   // Refresh function
   const refreshCompanies = async () => {
@@ -52,9 +60,24 @@ export function CompanyManager({ companies }: CompanyManagerProps) {
     refreshCompanies();
   };
 
+  const handleCompanyUpdated = (company: any) => {
+    // Refresh the companies data
+    refreshCompanies();
+  };
+
   const handleDeleteClick = (company: Company) => {
     setCompanyToDelete(company);
     setDeleteModalOpen(true);
+  };
+
+  const handleViewClick = (company: Company) => {
+    setCompanyToView(company);
+    setViewModalOpen(true);
+  };
+
+  const handleEditClick = (company: Company) => {
+    setCompanyToEdit(company);
+    setEditModalOpen(true);
   };
 
   const handleConfirmDelete = async (companyId: string, reason: string) => {
@@ -130,61 +153,90 @@ export function CompanyManager({ companies }: CompanyManagerProps) {
               <p className="text-gray-600 mb-4">No companies yet. Add your first company to get started.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {(companies || []).map((company) => (
                 <div
                   key={company.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-between p-4 rounded-lg border bg-white hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Building className="h-6 w-6 text-blue-600" />
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      company.is_active ? 'bg-blue-100' : 'bg-gray-100'
+                    }`}>
+                      <Building className={`h-6 w-6 ${company.is_active ? 'text-blue-600' : 'text-gray-400'}`} />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-medium text-gray-900">{company.name}</h3>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">{company.name}</h3>
+                        <Badge variant="outline" className="text-xs text-gray-500">
+                          {company.slug}
+                        </Badge>
+                        <Badge className={
                           company.is_active 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
+                            ? 'bg-green-100 text-green-800 border-green-200' 
+                            : 'bg-red-100 text-red-800 border-red-200'
+                        }>
                           {company.is_active ? 'Active' : 'Inactive'}
-                        </span>
+                        </Badge>
                       </div>
-                      <p className="text-sm text-gray-600">{company.slug}</p>
                       {company.description && (
-                        <p className="text-sm text-gray-500 mt-1">{company.description}</p>
+                        <p className="text-sm text-gray-600 mb-2">{company.description}</p>
                       )}
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {getTraineeCount(company)} trainees
+                          <Users className="h-4 w-4" />
+                          <span className="font-medium">{getTraineeCount(company)}</span>
+                          <span>trainees</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Settings className="h-3 w-3" />
-                          {getAdminCount(company)} admins
+                          <Settings className="h-4 w-4" />
+                          <span className="font-medium">{getAdminCount(company)}</span>
+                          <span>admins</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          Created {format(new Date(company.created_at), 'MMM d, yyyy')}
+                          <Calendar className="h-4 w-4" />
+                          <span>Created {format(new Date(company.created_at), 'MMM d, yyyy')}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Building className="h-4 w-4" />
+                          <span className="font-medium">{company.max_trainees}</span>
+                          <span>max trainees</span>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                      Manage
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteClick(company)}
-                      className={`text-red-600 hover:text-red-700 hover:bg-red-50 ${
-                        deleteModalOpen && companyToDelete?.id === company.id ? 'ring-2 ring-red-500' : ''
-                      }`}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-2"
+                      onClick={() => handleViewClick(company)}
                     >
-                          <Trash2 className="h-4 w-4" />
+                      <Eye className="h-4 w-4" />
+                      View
                     </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-2"
+                      onClick={() => handleEditClick(company)}
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleDeleteClick(company)} className="text-red-600 hover:text-red-700">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Company
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))}
@@ -206,6 +258,23 @@ export function CompanyManager({ companies }: CompanyManagerProps) {
         onClose={() => setDeleteModalOpen(false)}
         company={companyToDelete}
         onConfirmDelete={handleConfirmDelete}
+      />
+
+      {/* View Company Modal */}
+      <ViewCompanyModal
+        isOpen={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        company={companyToView}
+        onEdit={handleEditClick}
+        onDelete={handleDeleteClick}
+      />
+
+      {/* Edit Company Modal */}
+      <EditCompanyModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        company={companyToEdit}
+        onCompanyUpdated={handleCompanyUpdated}
       />
     </div>
   );
