@@ -11,6 +11,7 @@ import { LoadingButton } from '@/components/ui/loading-button';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SmoothLoadingWrapper } from '@/components/ui/smooth-loading-wrapper';
+import { FloatingInvitationToolbar } from '@/components/FloatingInvitationToolbar';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -375,11 +376,13 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Controls Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Invitation Management</h2>
-          <p className="text-gray-600 mt-1">Track and manage user invitations across the platform</p>
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-semibold text-gray-900">Invitation List</h2>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span>Showing {startInvitation}-{endInvitation} of {totalInvitations}</span>
+          </div>
         </div>
         <div className="flex gap-2">
           <LoadingButton 
@@ -393,53 +396,6 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
             Refresh
           </LoadingButton>
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Invitations</CardTitle>
-            <Mail className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalInvitations}</div>
-            <p className="text-xs text-gray-500">All time</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{invitations?.filter(inv => inv.status === 'pending')?.length || 0}</div>
-            <p className="text-xs text-gray-500">Awaiting response</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Accepted</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{invitations?.filter(inv => inv.status === 'accepted')?.length || 0}</div>
-            <p className="text-xs text-gray-500">Successfully joined</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expired</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{invitations?.filter(inv => inv.status === 'expired')?.length || 0}</div>
-            <p className="text-xs text-gray-500">Past expiry date</p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search and Filter Controls */}
@@ -489,35 +445,18 @@ export function InvitationTracker({ invitations, totalInvitations, currentPage, 
         </select>
       </div>
 
-      {/* Bulk Actions */}
-      {selectedInvitations.size > 0 && (
-        <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg">
-          <span className="text-sm text-blue-800">
-            {selectedInvitations.size} invitation{selectedInvitations.size !== 1 ? 's' : ''} selected
-          </span>
-          <Button
-            onClick={bulkResendInvitations}
-            size="sm"
-            variant="outline"
-            disabled={updating === 'bulk'}
-          >
-            <Mail className="h-4 w-4 mr-1" />
-            Resend Selected
-          </Button>
-          <Button
-            onClick={bulkCancelInvitations}
-            size="sm"
-            variant="outline"
-            disabled={updating === 'bulk'}
-          >
-            <XCircle className="h-4 w-4 mr-1" />
-            Cancel Selected
-          </Button>
-          <Button onClick={clearSelection} size="sm" variant="ghost">
-            Clear
-          </Button>
-        </div>
-      )}
+      {/* Floating Bulk Actions Toolbar */}
+      <FloatingInvitationToolbar
+        selectedCount={selectedInvitations.size}
+        onClearSelection={clearSelection}
+        onBulkResend={bulkResendInvitations}
+        onBulkCancel={bulkCancelInvitations}
+        onBulkDelete={() => {
+          // TODO: Implement bulk delete for invitations
+          toast.info('Bulk delete feature coming soon!');
+        }}
+        isUpdating={updating === 'bulk'}
+      />
 
       {/* Invitations Table */}
       <Card>

@@ -2,7 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { RoleGate } from '../../../components/RoleGate';
 import { InvitationTracker } from '../../../components/InvitationTracker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Mail, Clock, CheckCircle, XCircle, AlertCircle, UserPlus, Download, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -84,67 +86,36 @@ export default async function AdminInvitationsPage({ searchParams }: PageProps) 
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Invitation Management</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Invitations</h1>
             <p className="text-gray-600 mt-1">Track and manage user invitations across the platform</p>
           </div>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total</CardTitle>
-              <Mail className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-gray-500">All invitations</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-gray-500">Awaiting response</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Accepted</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.accepted}</div>
-              <p className="text-xs text-gray-500">Successfully joined</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Expired</CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.expired}</div>
-              <p className="text-xs text-gray-500">Past expiry date</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
-              <XCircle className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.cancelled}</div>
-              <p className="text-xs text-gray-500">Admin cancelled</p>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-500">
+                <span className="font-medium text-gray-900">{stats.total}</span> total
+              </div>
+              <div className="h-4 w-px bg-gray-300"></div>
+              <div className="text-sm text-gray-500">
+                <span className="font-medium text-yellow-600">{stats.pending}</span> pending
+              </div>
+              <div className="h-4 w-px bg-gray-300"></div>
+              <div className="text-sm text-gray-500">
+                <span className="font-medium text-green-600">{stats.accepted}</span> accepted
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Link href="/admin/users">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Invite User
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Invitation Tracker Component */}

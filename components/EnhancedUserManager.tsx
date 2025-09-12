@@ -17,6 +17,7 @@ import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SmoothLoadingWrapper } from '@/components/ui/smooth-loading-wrapper';
 import { UserProfileManager } from '@/components/UserProfileManager';
+import { FloatingBulkToolbar } from '@/components/FloatingBulkToolbar';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -334,86 +335,29 @@ export function EnhancedUserManager({ users, companies, totalUsers, currentPage,
         </LoadingButton>
       </div>
 
-      {/* Enhanced Bulk Actions */}
-      {selectedUsers.size > 0 && (
-        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <UserCheck className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-blue-900">
-                  {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''} selected
-                </p>
-                <p className="text-xs text-blue-600">Choose a bulk action to apply</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 mr-2">Change role to:</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="default"
-                  disabled={updating === 'bulk'}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {updating === 'bulk' ? (
-                    <>
-                      <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <UserCheck className="h-3 w-3 mr-2" />
-                      Update Roles
-                    </>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem 
-                  onClick={() => bulkUpdateRole('site_admin')}
-                  className="flex items-center gap-2"
-                >
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  Site Admin
-                  <span className="text-xs text-gray-500 ml-auto">Highest</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => bulkUpdateRole('company_admin')}
-                  className="flex items-center gap-2"
-                >
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  Company Admin
-                  <span className="text-xs text-gray-500 ml-auto">Medium</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => bulkUpdateRole('trainee')}
-                  className="flex items-center gap-2"
-                >
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Trainee
-                  <span className="text-xs text-gray-500 ml-auto">Standard</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <Button 
-              onClick={clearSelection} 
-              size="sm" 
-              variant="ghost"
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <XCircle className="h-3 w-3 mr-1" />
-              Clear
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Floating Bulk Actions Toolbar */}
+      <FloatingBulkToolbar
+        selectedCount={selectedUsers.size}
+        onClearSelection={clearSelection}
+        onBulkRoleChange={(role) => bulkUpdateRole(role as "site_admin" | "company_admin" | "trainee")}
+        onBulkExport={() => {
+          // TODO: Implement bulk export
+          toast.info('Bulk export feature coming soon!');
+        }}
+        onBulkDelete={() => {
+          // TODO: Implement bulk delete
+          toast.info('Bulk delete feature coming soon!');
+        }}
+        onBulkActivate={() => {
+          // TODO: Implement bulk activate
+          toast.info('Bulk activate feature coming soon!');
+        }}
+        onBulkDeactivate={() => {
+          // TODO: Implement bulk deactivate
+          toast.info('Bulk deactivate feature coming soon!');
+        }}
+        isUpdating={updating === 'bulk'}
+      />
 
       {/* Users Table */}
       <SmoothLoadingWrapper

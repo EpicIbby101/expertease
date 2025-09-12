@@ -14,7 +14,8 @@ import {
   Building, 
   Users,
   Calendar,
-  User
+  User,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -191,101 +192,83 @@ export function RecyclingBinManager({
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Deleted</CardTitle>
-            <Trash2 className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{companyStats.totalDeleted + userStats.totalDeleted}</div>
-            <p className="text-xs text-gray-500">Companies + Users</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recoverable</CardTitle>
-            <Clock className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{companyStats.recoverable + userStats.recoverable}</div>
-            <p className="text-xs text-gray-500">Within 30 days</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Permanently Deleted</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{companyStats.permanentlyDeleted + userStats.permanentlyDeleted}</div>
-            <p className="text-xs text-gray-500">Over 30 days old</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Companies</CardTitle>
-            <Building className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{companyStats.totalDeleted}</div>
-            <p className="text-xs text-gray-500">Deleted companies</p>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Recycling Bin Tabs */}
+      {/* Enhanced Recycling Bin Tabs */}
       <Tabs defaultValue="companies" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="companies" className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
-            Companies ({companyStats.totalDeleted})
-          </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Users ({userStats.totalDeleted})
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <TabsList className="grid w-full grid-cols-2 sm:w-auto">
+            <TabsTrigger value="companies" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              Companies ({companyStats.totalDeleted})
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users ({userStats.totalDeleted})
+            </TabsTrigger>
+          </TabsList>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-green-600" />
+              <span className="font-medium text-green-600">{companyStats.recoverable + userStats.recoverable}</span>
+              <span>recoverable</span>
+            </div>
+            <div className="h-4 w-px bg-gray-300"></div>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <span className="font-medium text-orange-600">{companyStats.permanentlyDeleted + userStats.permanentlyDeleted}</span>
+              <span>expired</span>
+            </div>
+          </div>
+        </div>
 
         {/* Companies Tab */}
         <TabsContent value="companies" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Deleted Companies</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5 text-blue-600" />
+                Deleted Companies
+              </CardTitle>
               <CardDescription>
                 Manage deleted companies. Items can be recovered within 30 days of deletion.
               </CardDescription>
             </CardHeader>
             <CardContent>
               {companies.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No deleted companies found
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Building className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No deleted companies</h3>
+                  <p className="text-gray-500">All companies are currently active</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {companies.map((company) => (
                     <div
                       key={company.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-white"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="p-2 bg-red-100 rounded-lg">
-                          <Building className="h-5 w-5 text-red-600" />
+                        <div className={`p-3 rounded-lg ${isRecoverable(company.deleted_at) ? 'bg-red-100' : 'bg-gray-100'}`}>
+                          <Building className={`h-5 w-5 ${isRecoverable(company.deleted_at) ? 'text-red-600' : 'text-gray-400'}`} />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{company.name}</h3>
-                            <Badge variant="outline" className="text-xs">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-gray-900">{company.name}</h3>
+                            <Badge variant="outline" className="text-xs text-gray-500">
                               {company.slug}
                             </Badge>
                             {isRecoverable(company.deleted_at) ? (
-                              <Badge className="bg-green-100 text-green-800">Recoverable</Badge>
+                              <Badge className="bg-green-100 text-green-800 border-green-200">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Recoverable
+                              </Badge>
                             ) : (
-                              <Badge variant="destructive">Expired</Badge>
+                              <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Expired
+                              </Badge>
                             )}
                           </div>
                           <div className="text-sm text-gray-500 mt-1">
@@ -304,25 +287,25 @@ export function RecyclingBinManager({
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex gap-2">
                         {isRecoverable(company.deleted_at) && (
                           <Button
                             onClick={() => recoverCompany(company.id)}
-                            variant="outline"
-                            size="sm"
                             disabled={loading}
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                           >
-                            <RotateCcw className="h-4 w-4 mr-2" />
+                            <RefreshCw className="h-4 w-4 mr-1" />
                             Recover
                           </Button>
                         )}
                         <Button
                           onClick={() => permanentlyDeleteCompany(company.id)}
+                          disabled={loading}
                           variant="destructive"
                           size="sm"
-                          disabled={loading}
                         >
-                          <X className="h-4 w-4 mr-2" />
+                          <Trash2 className="h-4 w-4 mr-1" />
                           Delete Forever
                         </Button>
                       </div>
@@ -338,30 +321,37 @@ export function RecyclingBinManager({
         <TabsContent value="users" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Deleted Users</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-600" />
+                Deleted Users
+              </CardTitle>
               <CardDescription>
                 Manage deleted users. Items can be recovered within 30 days of deletion.
               </CardDescription>
             </CardHeader>
             <CardContent>
               {users.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No deleted users found
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No deleted users</h3>
+                  <p className="text-gray-500">All users are currently active</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {users.map((user) => (
                     <div
                       key={user.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-white"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="p-2 bg-red-100 rounded-lg">
-                          <User className="h-5 w-5 text-red-600" />
+                        <div className={`p-3 rounded-lg ${isRecoverable(user.deleted_at) ? 'bg-red-100' : 'bg-gray-100'}`}>
+                          <User className={`h-5 w-5 ${isRecoverable(user.deleted_at) ? 'text-red-600' : 'text-gray-400'}`} />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-gray-900">
                               {user.first_name && user.last_name 
                                 ? `${user.first_name} ${user.last_name}`
                                 : user.email
@@ -371,9 +361,15 @@ export function RecyclingBinManager({
                               {user.role.replace('_', ' ')}
                             </Badge>
                             {isRecoverable(user.deleted_at) ? (
-                              <Badge className="bg-green-100 text-green-800">Recoverable</Badge>
+                              <Badge className="bg-green-100 text-green-800 border-green-200">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Recoverable
+                              </Badge>
                             ) : (
-                              <Badge variant="destructive">Expired</Badge>
+                              <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Expired
+                              </Badge>
                             )}
                           </div>
                           <div className="text-sm text-gray-500 mt-1">
@@ -393,25 +389,25 @@ export function RecyclingBinManager({
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex gap-2">
                         {isRecoverable(user.deleted_at) && (
                           <Button
                             onClick={() => recoverUser(user.id)}
-                            variant="outline"
-                            size="sm"
                             disabled={loading}
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                           >
-                            <RotateCcw className="h-4 w-4 mr-2" />
+                            <RefreshCw className="h-4 w-4 mr-1" />
                             Recover
                           </Button>
                         )}
                         <Button
                           onClick={() => permanentlyDeleteUser(user.id)}
+                          disabled={loading}
                           variant="destructive"
                           size="sm"
-                          disabled={loading}
                         >
-                          <X className="h-4 w-4 mr-2" />
+                          <Trash2 className="h-4 w-4 mr-1" />
                           Delete Forever
                         </Button>
                       </div>

@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { RoleGate } from '../../../components/RoleGate';
 import { RecyclingBinManager } from '../../../components/RecyclingBinManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Clock, AlertTriangle } from 'lucide-react';
+import { Trash2, Clock, AlertTriangle, RefreshCw, Download, Settings, Users, Building } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -77,59 +78,43 @@ export default async function RecyclingBinPage() {
   return (
     <RoleGate requiredRole="site_admin">
       <div className="space-y-6">
-        {/* Page Header */}
+        {/* Enhanced Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">Recycling Bin</h1>
             <p className="text-gray-600 mt-1">Manage deleted companies and users with recovery options</p>
           </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Deleted</CardTitle>
-              <Trash2 className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{companyStats.totalDeleted + userStats.totalDeleted}</div>
-              <p className="text-xs text-gray-500 mt-1">Companies + Users</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Recoverable</CardTitle>
-              <Clock className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{companyStats.recoverable + userStats.recoverable}</div>
-              <p className="text-xs text-gray-500 mt-1">Within 30 days</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Permanently Deleted</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{companyStats.permanentlyDeleted + userStats.permanentlyDeleted}</div>
-              <p className="text-xs text-gray-500 mt-1">Over 30 days old</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Companies</CardTitle>
-              <Trash2 className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{companyStats.totalDeleted}</div>
-              <p className="text-xs text-gray-500 mt-1">Deleted companies</p>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <Trash2 className="h-4 w-4 text-red-600" />
+                <span className="font-medium text-gray-900">{companyStats.totalDeleted + userStats.totalDeleted}</span>
+                <span>total deleted</span>
+              </div>
+              <div className="h-4 w-px bg-gray-300"></div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-green-600">{companyStats.recoverable + userStats.recoverable}</span>
+                <span>recoverable</span>
+              </div>
+              <div className="h-4 w-px bg-gray-300"></div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+                <span className="font-medium text-orange-600">{companyStats.permanentlyDeleted + userStats.permanentlyDeleted}</span>
+                <span>expired</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Show error if users soft delete isn't implemented yet */}
