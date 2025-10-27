@@ -18,7 +18,7 @@ export async function DELETE(request: Request) {
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('role, company_id')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
     if (userError || !userData) {
@@ -39,10 +39,11 @@ export async function DELETE(request: Request) {
     }
 
     // Check if user can manage the target trainee (same company)
+    // First try with id (for system users) then with user_id (for Clerk users)
     const { data: targetUser } = await supabase
       .from('users')
-      .select('company_id, role')
-      .eq('id', traineeId)
+      .select('company_id, role, user_id')
+      .or(`id.eq.${traineeId},user_id.eq.${traineeId}`)
       .single();
 
     if (!targetUser || targetUser.company_id !== userData.company_id) {
@@ -54,11 +55,11 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'User is not a trainee' }, { status: 400 });
     }
 
-    // Delete the trainee
+    // Delete the trainee (handle both id and user_id)
     const { error } = await supabase
       .from('users')
       .delete()
-      .eq('id', traineeId);
+      .or(`id.eq.${traineeId},user_id.eq.${traineeId}`);
 
     if (error) {
       console.error('Error deleting trainee:', error);

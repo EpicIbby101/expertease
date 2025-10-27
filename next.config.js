@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   webpack: (config, { isServer }) => {
     // Ignore punycode deprecation warning
     config.ignoreWarnings = [
