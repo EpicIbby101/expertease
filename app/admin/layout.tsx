@@ -2,7 +2,7 @@ import { UserButton } from '@clerk/nextjs';
 import { getUserRole } from '@/lib/auth';
 import { getUserCompany } from '@/lib/auth';
 import Link from 'next/link';
-import { Users, Mail, Building, Home, Shield, Settings, BarChart3 } from 'lucide-react';
+import { Users, Mail, Building, Home, Shield, Settings, BarChart3, MessageSquare } from 'lucide-react';
 
 export default async function AdminLayout({
   children,
@@ -94,6 +94,13 @@ export default async function AdminLayout({
               >
                 <Building className="h-4 w-4 mr-2" />
                 Companies
+              </Link>
+              <Link 
+                href="/admin/tickets" 
+                className="flex items-center px-3 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-blue-500 transition-colors"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Support Tickets
               </Link>
               <Link 
                 href="/admin/analytics" 

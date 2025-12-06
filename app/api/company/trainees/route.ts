@@ -41,10 +41,14 @@ export async function GET(request: NextRequest) {
         email,
         first_name,
         last_name,
+        phone,
+        job_title,
+        department,
+        date_of_birth,
         role,
         is_active,
         created_at,
-        last_login_at
+        last_active_at
       `)
       .eq('company_id', userCompany.company_id)
       .eq('role', 'trainee')
@@ -71,8 +75,8 @@ export async function GET(request: NextRequest) {
       const averageScore = Math.min(100, baseScore + completionBonus);
       
       // Simulate engagement score based on recent activity
-      const daysSinceLastLogin = trainee.last_login_at 
-        ? Math.floor((new Date().getTime() - new Date(trainee.last_login_at).getTime()) / (1000 * 60 * 60 * 24))
+      const daysSinceLastLogin = trainee.last_active_at 
+        ? Math.floor((new Date().getTime() - new Date(trainee.last_active_at).getTime()) / (1000 * 60 * 60 * 24))
         : 30;
       
       let engagementScore;

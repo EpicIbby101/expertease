@@ -85,13 +85,16 @@ export function CompanyDashboardAnalytics({ companyId, companyName }: CompanyDas
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/company/analytics?companyId=${companyId}&timeRange=${timeRange}`);
+      const response = await fetch(`/api/company/analytics?timeRange=${timeRange}`);
       const data = await response.json();
       
       if (response.ok) {
         setAnalytics(data.analytics || null);
       } else {
-        toast.error('Failed to fetch company analytics');
+        console.error('Analytics API error:', data);
+        toast.error(data.error || 'Failed to fetch company analytics', {
+          description: data.details
+        });
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);

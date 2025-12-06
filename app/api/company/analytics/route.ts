@@ -18,8 +18,12 @@ export async function GET(request: NextRequest) {
 
     // Get user's company
     const userCompany = await getUserCompany();
+    
     if (!userCompany?.company_id) {
-      return NextResponse.json({ error: 'User not associated with a company' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'User not associated with a company',
+        details: 'Please contact your administrator to assign you to a company.'
+      }, { status: 400 });
     }
 
     // Check if user is company admin
@@ -53,7 +57,7 @@ export async function GET(request: NextRequest) {
         role,
         is_active,
         created_at,
-        last_login_at
+        last_active_at
       `)
       .eq('company_id', userCompany.company_id)
       .eq('role', 'trainee')
@@ -61,7 +65,12 @@ export async function GET(request: NextRequest) {
 
     if (traineesError) {
       console.error('Error fetching trainees:', traineesError);
-      return NextResponse.json({ error: 'Failed to fetch trainees' }, { status: 500 });
+      console.error('Company ID:', userCompany.company_id);
+      console.error('User ID:', userId);
+      return NextResponse.json({ 
+        error: 'Failed to fetch trainees',
+        details: traineesError.message 
+      }, { status: 500 });
     }
 
     // For now, we'll simulate course data since we don't have a courses table yet
@@ -138,7 +147,7 @@ export async function GET(request: NextRequest) {
         totalCourses,
         completedCourses,
         averageScore: Math.round(averageScore * 10) / 10,
-        lastActivity: trainee.last_login_at || trainee.created_at,
+        lastActivity: trainee.last_active_at || trainee.created_at,
         engagementScore: Math.round(engagementScore * 10) / 10
       };
     }).sort((a, b) => b.averageScore - a.averageScore) || [];
@@ -148,9 +157,9 @@ export async function GET(request: NextRequest) {
     const averageScore = courseProgress.length > 0 ? 
       courseProgress.reduce((sum, course) => sum + course.averageScore, 0) / courseProgress.length : 0;
     
-    // Calculate trainee engagement (based on recent logins)
+    // Calculate trainee engagement (based on recent activity)
     const recentActiveTrainees = trainees?.filter(t => 
-      t.last_login_at && new Date(t.last_login_at) > startDate
+      t.last_active_at && new Date(t.last_active_at) > startDate
     ).length || 0;
     const traineeEngagement = totalTrainees > 0 ? (recentActiveTrainees / totalTrainees) * 100 : 0;
 

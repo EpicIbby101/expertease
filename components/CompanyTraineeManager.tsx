@@ -33,9 +33,13 @@ interface Trainee {
   email: string;
   first_name?: string;
   last_name?: string;
+  phone?: string;
+  job_title?: string;
+  department?: string;
+  date_of_birth?: string;
   is_active: boolean;
   created_at: string;
-  last_login_at?: string;
+  last_active_at?: string;
   completionRate: number;
   averageScore: number;
   coursesCompleted: number;
@@ -136,6 +140,40 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
   const handleEditTrainee = (trainee: Trainee) => {
     setSelectedTrainee(trainee);
     setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateTrainee = async () => {
+    if (!selectedTrainee) return;
+
+    try {
+      const response = await fetch('/api/company/update-trainee', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          traineeId: selectedTrainee.id,
+          first_name: selectedTrainee.first_name,
+          last_name: selectedTrainee.last_name,
+          phone: selectedTrainee.phone,
+          job_title: selectedTrainee.job_title,
+          department: selectedTrainee.department,
+          date_of_birth: selectedTrainee.date_of_birth,
+          is_active: selectedTrainee.is_active
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Trainee updated successfully');
+        setIsEditDialogOpen(false);
+        fetchTrainees();
+      } else {
+        toast.error(data.error || 'Failed to update trainee');
+      }
+    } catch (error) {
+      console.error('Error updating trainee:', error);
+      toast.error('An error occurred while updating trainee');
+    }
   };
 
   const handleViewTrainee = (trainee: Trainee) => {
@@ -437,7 +475,7 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          <span>Last active {getTimeAgo(trainee.last_login_at || trainee.created_at)}</span>
+                          <span>Last active {getTimeAgo(trainee.last_active_at || trainee.created_at)}</span>
                         </div>
                       </div>
                     </div>
@@ -565,6 +603,27 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
                   <p className="font-medium">{selectedTrainee.email}</p>
                 </div>
                 <div>
+                  <Label className="text-sm text-gray-500">Phone</Label>
+                  <p className="font-medium">{selectedTrainee.phone || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Job Title</Label>
+                  <p className="font-medium">{selectedTrainee.job_title || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Department</Label>
+                  <p className="font-medium">{selectedTrainee.department || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Date of Birth</Label>
+                  <p className="font-medium">
+                    {selectedTrainee.date_of_birth 
+                      ? format(new Date(selectedTrainee.date_of_birth), 'MMM d, yyyy')
+                      : 'N/A'
+                    }
+                  </p>
+                </div>
+                <div>
                   <Label className="text-sm text-gray-500">Status</Label>
                   <Badge className={
                     selectedTrainee.is_active 
@@ -595,8 +654,8 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
                 <div>
                   <Label className="text-sm text-gray-500">Last Active</Label>
                   <p className="font-medium">
-                    {selectedTrainee.last_login_at 
-                      ? getTimeAgo(selectedTrainee.last_login_at)
+                    {selectedTrainee.last_active_at 
+                      ? getTimeAgo(selectedTrainee.last_active_at)
                       : 'Never'
                     }
                   </p>
@@ -607,6 +666,113 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
           <DialogFooter>
             <Button onClick={() => setIsViewDialogOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Trainee Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Trainee Details</DialogTitle>
+            <DialogDescription>
+              Update information for {selectedTrainee?.email}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTrainee && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_email">Email Address</Label>
+                <Input
+                  id="edit_email"
+                  type="email"
+                  value={selectedTrainee.email}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="text-xs text-gray-500">Email cannot be changed</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_first_name">First Name</Label>
+                  <Input
+                    id="edit_first_name"
+                    placeholder="John"
+                    value={selectedTrainee.first_name || ''}
+                    onChange={(e) => setSelectedTrainee({ ...selectedTrainee, first_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit_last_name">Last Name</Label>
+                  <Input
+                    id="edit_last_name"
+                    placeholder="Doe"
+                    value={selectedTrainee.last_name || ''}
+                    onChange={(e) => setSelectedTrainee({ ...selectedTrainee, last_name: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_phone">Phone</Label>
+                <Input
+                  id="edit_phone"
+                  type="tel"
+                  placeholder="+1 (555) 123-4567"
+                  value={selectedTrainee.phone || ''}
+                  onChange={(e) => setSelectedTrainee({ ...selectedTrainee, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_job_title">Job Title</Label>
+                <Input
+                  id="edit_job_title"
+                  placeholder="Software Engineer"
+                  value={selectedTrainee.job_title || ''}
+                  onChange={(e) => setSelectedTrainee({ ...selectedTrainee, job_title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_department">Department</Label>
+                <Input
+                  id="edit_department"
+                  placeholder="Engineering"
+                  value={selectedTrainee.department || ''}
+                  onChange={(e) => setSelectedTrainee({ ...selectedTrainee, department: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_date_of_birth">Date of Birth</Label>
+                <Input
+                  id="edit_date_of_birth"
+                  type="date"
+                  value={selectedTrainee.date_of_birth ? new Date(selectedTrainee.date_of_birth).toISOString().split('T')[0] : ''}
+                  onChange={(e) => setSelectedTrainee({ ...selectedTrainee, date_of_birth: e.target.value || undefined })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_status">Status</Label>
+                <Select 
+                  value={selectedTrainee.is_active ? 'active' : 'inactive'}
+                  onValueChange={(value) => setSelectedTrainee({ ...selectedTrainee, is_active: value === 'active' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateTrainee}>
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
