@@ -90,7 +90,7 @@ export async function searchUsers(searchTerm: string) {
             ${users.firstName} ILIKE ${'%' + searchTerm + '%'} OR 
             ${users.lastName} ILIKE ${'%' + searchTerm + '%'}`
       )
-      .orderBy(desc(users.createdTime))
+      .orderBy(desc(users.createdAt))
       .limit(10);
     
     return { data: results };

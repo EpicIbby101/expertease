@@ -4,7 +4,7 @@ import { companies } from './companies';
 
 export const users = pgTable('users', { // Changed from 'user' to 'users' to match actual DB
   id: serial('id').primaryKey(),
-  createdTime: timestamp('created_time').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
   email: varchar('email').unique().notNull(),
   firstName: text('first_name'),
   lastName: text('last_name'),
