@@ -4,6 +4,8 @@ import { getUserCompany } from '@/lib/auth';
 import Link from 'next/link';
 import { Users, Mail, Building, Home, Shield, Settings, BarChart3, MessageSquare } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminLayout({
   children,
 }: {

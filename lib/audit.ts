@@ -6,7 +6,8 @@ const supabase = createClient(
 );
 
 export type AuditAction = 
-  | 'user_created' | 'user_updated' | 'user_deleted' | 'user_activated' | 'user_deactivated'
+  | 'user_created' | 'user_updated' | 'user_deleted' | 'user_permanently_deleted' | 'user_recovered'
+  | 'user_activated' | 'user_deactivated'
   | 'user_role_changed' | 'user_company_changed' | 'user_profile_updated'
   | 'company_created' | 'company_updated' | 'company_deleted' | 'company_restored'
   | 'invitation_sent' | 'invitation_accepted' | 'invitation_expired' | 'invitation_cancelled'
@@ -164,8 +165,6 @@ export class AuditLogger {
       userId,
       action,
       resourceType: 'security_event',
-      oldValues: null,
-      newValues: null,
       metadata,
       severity
     });

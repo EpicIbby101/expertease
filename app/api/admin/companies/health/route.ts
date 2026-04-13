@@ -46,10 +46,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user data for all companies
-    const companyIds = companies.map(c => c.id);
+    const companyIds = companies && companies.length > 0 ? companies.map(c => c.id) : [];
+    if (companyIds.length === 0) {
+      return NextResponse.json({ healthData: [] });
+    }
+    
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, company_id, role, is_active, created_at, last_login_at')
+      .select('id, company_id, role, is_active, created_at, last_active_at')
       .in('company_id', companyIds)
       .is('deleted_at', null);
 
@@ -70,9 +74,9 @@ export async function GET(request: NextRequest) {
       const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       
-      // User Engagement (based on recent logins)
+      // User Engagement (based on recent activity)
       const recentActiveUsers = companyUsers.filter(u => 
-        u.last_login_at && new Date(u.last_login_at) > oneWeekAgo
+        u.last_active_at && new Date(u.last_active_at) > oneWeekAgo
       ).length;
       const userEngagement = companyUsers.length > 0 ? (recentActiveUsers / companyUsers.length) * 100 : 0;
       
@@ -191,10 +195,10 @@ export async function GET(request: NextRequest) {
       
       // Get last activity
       const lastLogin = companyUsers
-        .filter(u => u.last_login_at)
-        .sort((a, b) => new Date(b.last_login_at!).getTime() - new Date(a.last_login_at!).getTime())[0];
+        .filter(u => u.last_active_at)
+        .sort((a, b) => new Date(b.last_active_at!).getTime() - new Date(a.last_active_at!).getTime())[0];
       
-      const lastActivity = lastLogin?.last_login_at || company.created_at;
+      const lastActivity = lastLogin?.last_active_at || company.created_at;
       
       return {
         companyId: company.id,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { auth } from '@clerk/nextjs/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +9,24 @@ const supabase = createClient(
 
 export async function GET(request: NextRequest) {
   try {
+    // Check authentication
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is site admin
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+
+    if (!user || user.role !== 'site_admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || '30d'; // 7d, 30d, 90d, 1y
     const metric = searchParams.get('metric') || 'overview'; // overview, users, companies, activity
@@ -33,8 +52,9 @@ export async function GET(request: NextRequest) {
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
 
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = now.toISOString().split('T')[0];
+    // Use full ISO datetime strings for proper comparison
+    const startDateStr = startDate.toISOString();
+    const endDateStr = now.toISOString();
 
     switch (metric) {
       case 'overview':
@@ -60,18 +80,24 @@ export async function GET(request: NextRequest) {
 }
 
 async function getOverviewMetrics(startDate: string, endDate: string) {
-  // Get total counts
+  // Get total counts (excluding soft-deleted records)
   const [
-    { count: totalUsers },
-    { count: totalCompanies },
-    { count: activeUsers },
-    { count: activeCompanies }
+    { count: totalUsers, error: usersError },
+    { count: totalCompanies, error: companiesError },
+    { count: activeUsers, error: activeUsersError },
+    { count: activeCompanies, error: activeCompaniesError }
   ] = await Promise.all([
-    supabase.from('users').select('*', { count: 'exact', head: true }),
-    supabase.from('companies').select('*', { count: 'exact', head: true }),
-    supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_active', true),
-    supabase.from('companies').select('*', { count: 'exact', head: true }).eq('is_active', true)
+    supabase.from('users').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+    supabase.from('companies').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+    supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_active', true).is('deleted_at', null),
+    supabase.from('companies').select('*', { count: 'exact', head: true }).eq('is_active', true).is('deleted_at', null)
   ]);
+
+  // Log any errors
+  if (usersError) console.error('Error fetching total users:', usersError);
+  if (companiesError) console.error('Error fetching total companies:', companiesError);
+  if (activeUsersError) console.error('Error fetching active users:', activeUsersError);
+  if (activeCompaniesError) console.error('Error fetching active companies:', activeCompaniesError);
 
   // Get recent registrations (last 30 days)
   const { data: recentUsers } = await supabase
@@ -79,6 +105,7 @@ async function getOverviewMetrics(startDate: string, endDate: string) {
     .select('created_at')
     .gte('created_at', startDate)
     .lte('created_at', endDate)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   const { data: recentCompanies } = await supabase
@@ -86,6 +113,7 @@ async function getOverviewMetrics(startDate: string, endDate: string) {
     .select('created_at')
     .gte('created_at', startDate)
     .lte('created_at', endDate)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   // Calculate growth rates
@@ -113,6 +141,7 @@ async function getUserMetrics(startDate: string, endDate: string, period: string
     .select('created_at, role')
     .gte('created_at', startDate)
     .lte('created_at', endDate)
+    .is('deleted_at', null)
     .order('created_at', { ascending: true });
 
   // Group by time period
@@ -122,7 +151,8 @@ async function getUserMetrics(startDate: string, endDate: string, period: string
   const { data: roleDistribution } = await supabase
     .from('users')
     .select('role')
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .is('deleted_at', null);
 
   const roleCounts = (roleDistribution || []).reduce((acc: Record<string, number>, user) => {
     acc[user.role] = (acc[user.role] || 0) + 1;
@@ -145,6 +175,7 @@ async function getCompanyMetrics(startDate: string, endDate: string, period: str
     .select('created_at, max_trainees, is_active')
     .gte('created_at', startDate)
     .lte('created_at', endDate)
+    .is('deleted_at', null)
     .order('created_at', { ascending: true });
 
   // Group by time period
@@ -181,6 +212,17 @@ async function getActivityMetrics(startDate: string, endDate: string, period: st
     .gte('created_at', startDate)
     .lte('created_at', endDate)
     .order('created_at', { ascending: true });
+  
+  if (!auditLogs) {
+    return NextResponse.json({
+      activityMetrics: {
+        activityOverTime: [],
+        actionDistribution: {},
+        resourceDistribution: {},
+        totalActivities: 0
+      }
+    });
+  }
 
   // Group by time period
   const groupedData = groupDataByPeriod(auditLogs || [], period, 'created_at');
@@ -255,6 +297,7 @@ async function getGrowthMetrics(startDate: string, endDate: string, period: stri
     .select('created_at, is_active')
     .gte('created_at', startDate)
     .lte('created_at', endDate)
+    .is('deleted_at', null)
     .order('created_at', { ascending: true });
 
   // Get company growth trends
@@ -263,6 +306,7 @@ async function getGrowthMetrics(startDate: string, endDate: string, period: stri
     .select('created_at, is_active')
     .gte('created_at', startDate)
     .lte('created_at', endDate)
+    .is('deleted_at', null)
     .order('created_at', { ascending: true });
 
   // Calculate cumulative growth
@@ -275,11 +319,13 @@ async function getGrowthMetrics(startDate: string, endDate: string, period: stri
     .from('users')
     .select('*', { count: 'exact', head: true })
     .eq('is_active', true)
-    .gte('created_at', sevenDaysAgo);
+    .gte('last_active_at', sevenDaysAgo)
+    .is('deleted_at', null);
 
   const { count: totalUsers } = await supabase
     .from('users')
-    .select('*', { count: 'exact', head: true });
+    .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null);
 
   const retentionRate = totalUsers ? Math.round((activeUsersLast7Days || 0) / totalUsers * 100) : 0;
 
@@ -306,9 +352,10 @@ async function getUsageMetrics(startDate: string, endDate: string, period: strin
   // Get user activity patterns
   const { data: userActivity } = await supabase
     .from('users')
-    .select('created_at, last_sign_in_at, is_active')
+    .select('created_at, last_active_at, is_active')
     .gte('created_at', startDate)
-    .lte('created_at', endDate);
+    .lte('created_at', endDate)
+    .is('deleted_at', null);
 
   // Calculate daily active users
   const dailyActiveUsers = calculateDailyActiveUsers(auditLogs || [], period);

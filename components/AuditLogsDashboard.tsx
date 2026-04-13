@@ -23,6 +23,19 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
+type AuditLogUser = {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+};
+
+function auditLogUser(
+  users: AuditLogUser | AuditLogUser[] | null | undefined
+): AuditLogUser | undefined {
+  if (!users) return undefined;
+  return Array.isArray(users) ? users[0] : users;
+}
+
 interface AuditLog {
   id: string;
   user_id?: string;
@@ -37,11 +50,7 @@ interface AuditLog {
   severity: 'low' | 'info' | 'warning' | 'error' | 'critical';
   category: string;
   created_at: string;
-  users?: {
-    first_name?: string;
-    last_name?: string;
-    email: string;
-  };
+  users?: AuditLogUser | AuditLogUser[];
 }
 
 interface AuditLogsDashboardProps {
@@ -139,16 +148,22 @@ export function AuditLogsDashboard({ initialLogs = [], totalCount = 0 }: AuditLo
   // Convert logs to CSV
   const convertToCSV = (logs: AuditLog[]) => {
     const headers = ['Date', 'User', 'Action', 'Resource Type', 'Resource ID', 'Severity', 'Category', 'IP Address'];
-    const rows = logs.map(log => [
+    const rows = logs.map((log) => {
+      const u = auditLogUser(log.users);
+      const userLabel = u
+        ? `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || 'System'
+        : 'System';
+      return [
       new Date(log.created_at).toISOString(),
-      log.users ? `${log.users.first_name || ''} ${log.users.last_name || ''}`.trim() || log.users.email : 'System',
+      userLabel,
       log.action,
       log.resource_type,
       log.resource_id || '',
       log.severity,
       log.category,
       log.ip_address || ''
-    ]);
+    ];
+    });
 
     return [headers, ...rows].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
   };
@@ -348,7 +363,9 @@ export function AuditLogsDashboard({ initialLogs = [], totalCount = 0 }: AuditLo
             ) : logs.length === 0 ? (
               <div className="text-center py-8 text-gray-500">No audit logs found</div>
             ) : (
-              logs.map((log) => (
+              logs.map((log) => {
+                const rowUser = auditLogUser(log.users);
+                return (
                 <div
                   key={log.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
@@ -365,13 +382,12 @@ export function AuditLogsDashboard({ initialLogs = [], totalCount = 0 }: AuditLo
                         <Badge variant="outline">{log.category}</Badge>
                       </div>
                       <div className="text-sm text-gray-500">
-                        {log.users ? (
+                        {rowUser ? (
                           <span className="flex items-center gap-1">
                             <User className="h-3 w-3" />
-                            {log.users.first_name && log.users.last_name 
-                              ? `${log.users.first_name} ${log.users.last_name}`
-                              : log.users.email
-                            }
+                            {rowUser.first_name && rowUser.last_name
+                              ? `${rowUser.first_name} ${rowUser.last_name}`
+                              : rowUser.email}
                           </span>
                         ) : (
                           <span>System</span>
@@ -394,7 +410,8 @@ export function AuditLogsDashboard({ initialLogs = [], totalCount = 0 }: AuditLo
                     )}
                   </div>
                 </div>
-              ))
+              );
+              })
             )}
           </div>
 
@@ -428,7 +445,9 @@ export function AuditLogsDashboard({ initialLogs = [], totalCount = 0 }: AuditLo
       </Card>
 
       {/* Log Detail Modal */}
-      {selectedLog && (
+      {selectedLog && (() => {
+        const detailUser = auditLogUser(selectedLog.users);
+        return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
@@ -462,12 +481,11 @@ export function AuditLogsDashboard({ initialLogs = [], totalCount = 0 }: AuditLo
                   <div>
                     <Label>User</Label>
                     <p className="text-sm text-gray-600">
-                      {selectedLog.users ? (
-                        selectedLog.users.first_name && selectedLog.users.last_name 
-                          ? `${selectedLog.users.first_name} ${selectedLog.users.last_name} (${selectedLog.users.email})`
-                          : selectedLog.users.email
-                      ) : 'System'
-                      }
+                      {detailUser
+                        ? detailUser.first_name && detailUser.last_name
+                          ? `${detailUser.first_name} ${detailUser.last_name} (${detailUser.email ?? ''})`
+                          : (detailUser.email ?? 'System')
+                        : 'System'}
                     </p>
                   </div>
                   <div>
@@ -523,7 +541,8 @@ export function AuditLogsDashboard({ initialLogs = [], totalCount = 0 }: AuditLo
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

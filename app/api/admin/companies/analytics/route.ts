@@ -56,11 +56,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch companies' }, { status: 500 });
     }
 
+    if (!companies || companies.length === 0) {
+      return NextResponse.json({
+        analytics: [],
+        metrics: {
+          totalCompanies: 0,
+          activeCompanies: 0,
+          totalUsers: 0,
+          totalTrainees: 0,
+          averageHealthScore: 0,
+          companiesAtCapacity: 0,
+          inactiveCompanies: 0,
+          growthRate: 0
+        },
+        timeSeriesData: []
+      });
+    }
+
     // Get user counts for each company
     const companyIds = companies.map(c => c.id);
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, company_id, role, is_active, created_at, last_login_at')
+      .select('id, company_id, role, is_active, created_at, last_active_at')
       .in('company_id', companyIds)
       .is('deleted_at', null);
 
@@ -82,7 +99,7 @@ export async function GET(request: NextRequest) {
       
       // User activity factor (40% weight)
       const recentActiveUsers = companyUsers.filter(u => 
-        u.last_login_at && new Date(u.last_login_at) > startDate
+        u.last_active_at && new Date(u.last_active_at) > startDate
       ).length;
       const activityFactor = recentActiveUsers > 0 ? Math.min((recentActiveUsers / companyUsers.length) * 100, 100) : 0;
       healthScore += activityFactor * 0.4;
@@ -103,17 +120,25 @@ export async function GET(request: NextRequest) {
       healthScore += adminFactor * 0.1;
 
       // Calculate growth rate (simplified)
+      const comparisonDate = new Date();
+      comparisonDate.setDate(comparisonDate.getDate() - days);
+      
       const oldUsers = companyUsers.filter(u => 
-        new Date(u.created_at) <= new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+        new Date(u.created_at) <= comparisonDate
       ).length;
-      const growthRate = oldUsers > 0 ? ((companyUsers.length - oldUsers) / oldUsers) * 100 : 0;
+      
+      const newUsers = companyUsers.filter(u => 
+        new Date(u.created_at) > comparisonDate
+      ).length;
+      
+      const growthRate = oldUsers > 0 ? ((newUsers / oldUsers) * 100) : (newUsers > 0 ? 100 : 0);
 
       // Get last activity
       const lastLogin = companyUsers
-        .filter(u => u.last_login_at)
-        .sort((a, b) => new Date(b.last_login_at!).getTime() - new Date(a.last_login_at!).getTime())[0];
+        .filter(u => u.last_active_at)
+        .sort((a, b) => new Date(b.last_active_at!).getTime() - new Date(a.last_active_at!).getTime())[0];
       
-      const lastActivity = lastLogin?.last_login_at || company.created_at;
+      const lastActivity = lastLogin?.last_active_at || company.created_at;
 
       return {
         companyId: company.id,
@@ -136,15 +161,25 @@ export async function GET(request: NextRequest) {
     const activeCompanies = companies.filter(c => c.is_active).length;
     const totalUsers = users?.length || 0;
     const totalTrainees = users?.filter(u => u.role === 'trainee').length || 0;
-    const averageHealthScore = analytics.reduce((sum, a) => sum + a.healthScore, 0) / analytics.length || 0;
+    const averageHealthScore = analytics.length > 0 
+      ? analytics.reduce((sum, a) => sum + a.healthScore, 0) / analytics.length 
+      : 0;
     const companiesAtCapacity = analytics.filter(a => a.utilizationRate >= 90).length;
     const inactiveCompanies = analytics.filter(a => a.healthScore < 60).length;
 
     // Calculate overall growth rate
+    const comparisonDate = new Date();
+    comparisonDate.setDate(comparisonDate.getDate() - days);
+    
     const oldCompanies = companies.filter(c => 
-      new Date(c.created_at) <= new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+      new Date(c.created_at) <= comparisonDate
     ).length;
-    const growthRate = oldCompanies > 0 ? ((totalCompanies - oldCompanies) / oldCompanies) * 100 : 0;
+    
+    const newCompanies = companies.filter(c => 
+      new Date(c.created_at) > comparisonDate
+    ).length;
+    
+    const growthRate = oldCompanies > 0 ? ((newCompanies / oldCompanies) * 100) : (newCompanies > 0 ? 100 : 0);
 
     const metrics = {
       totalCompanies,
@@ -162,18 +197,25 @@ export async function GET(request: NextRequest) {
     for (let i = days; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0); // Normalize to start of day
       
-      const companiesOnDate = companies.filter(c => 
-        new Date(c.created_at) <= date
-      ).length;
+      const companiesOnDate = companies ? companies.filter(c => {
+        const createdDate = new Date(c.created_at);
+        createdDate.setHours(0, 0, 0, 0);
+        return createdDate <= date;
+      }).length : 0;
       
-      const usersOnDate = users?.filter(u => 
-        new Date(u.created_at) <= date
-      ).length || 0;
+      const usersOnDate = users ? users.filter(u => {
+        const createdDate = new Date(u.created_at);
+        createdDate.setHours(0, 0, 0, 0);
+        return createdDate <= date;
+      }).length : 0;
       
-      const traineesOnDate = users?.filter(u => 
-        u.role === 'trainee' && new Date(u.created_at) <= date
-      ).length || 0;
+      const traineesOnDate = users ? users.filter(u => {
+        const createdDate = new Date(u.created_at);
+        createdDate.setHours(0, 0, 0, 0);
+        return u.role === 'trainee' && createdDate <= date;
+      }).length : 0;
 
       timeSeriesData.push({
         date: date.toISOString().split('T')[0],

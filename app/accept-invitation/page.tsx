@@ -32,13 +32,50 @@ function AcceptInvitationContent() {
   useEffect(() => {
     const checkInvitationStatus = async () => {
       try {
-        const token = searchParams.get('token');
+        // Try to get token from URL params (Clerk might add it in different formats)
+        let token = searchParams.get('token') 
+          || searchParams.get('__clerk_invitation_token')
+          || searchParams.get('__clerk_ticket') 
+          || null;
+        
+        // If no token in params, check if it's in the hash or other location
+        if (!token && typeof window !== 'undefined') {
+          // Try to extract from current URL
+          const url = new URL(window.location.href);
+          token = url.searchParams.get('token') 
+            || url.searchParams.get('__clerk_invitation_token')
+            || url.searchParams.get('__clerk_ticket');
+          
+          // Also check hash fragment in case Clerk puts it there
+          if (!token && window.location.hash) {
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            token = hashParams.get('token') || hashParams.get('__clerk_invitation_token');
+          }
+        }
+        
+        // Decode the token in case it was URL-encoded
+        if (token) {
+          try {
+            // Only decode if it looks URL-encoded (contains %)
+            if (token.includes('%')) {
+              token = decodeURIComponent(token);
+            }
+          } catch (e) {
+            // If decoding fails, use the original token
+            console.warn('Failed to decode token, using original:', e);
+          }
+        }
         
         if (!token) {
-          setError("Invalid invitation link. Missing token.");
+          console.error('No token found in URL. All params:', Object.fromEntries(searchParams.entries()));
+          console.error('Current URL:', typeof window !== 'undefined' ? window.location.href : 'N/A');
+          setError("Invalid invitation link. Missing token parameter.");
           setStep("error");
           return;
         }
+        
+        console.log('Extracted token from URL:', token);
+        console.log('Token length:', token.length);
 
         // If user is already signed in, check their status first
         if (isSignedIn && user) {
@@ -68,11 +105,16 @@ function AcceptInvitationContent() {
         }
 
         // Verify the invitation token
-        const response = await fetch(`/api/invitations/verify?token=${token}`);
+        const verifyUrl = `/api/invitations/verify?token=${encodeURIComponent(token)}`;
+        console.log('Verifying invitation with URL:', verifyUrl);
+        const response = await fetch(verifyUrl);
         const data = await response.json();
         
+        console.log('Verification response:', { ok: response.ok, status: response.status, data });
+        
         if (!response.ok) {
-          setError(data.error || "Invalid invitation");
+          console.error('Invitation verification failed:', data);
+          setError(data.error || data.details || "Invalid invitation token");
           setStep("error");
           return;
         }
@@ -149,7 +191,10 @@ function AcceptInvitationContent() {
 
   const handleSignUp = async () => {
     try {
-      const token = searchParams.get('token');
+      let token = searchParams.get('token');
+      if (token) {
+        token = decodeURIComponent(token);
+      }
       if (!token) {
         setError("Invalid invitation token");
         return;

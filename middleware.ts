@@ -94,6 +94,11 @@ export default async function middleware(req: any) {
         return await auth().redirectToSignIn({ returnBackUrl: req.url });
       }
       
+      // Allow accept-invitation route without authentication checks
+      if (path.startsWith('/accept-invitation')) {
+        return NextResponse.next();
+      }
+      
       // User is authenticated
       if (userId) {
         // Check if user is trying to access the sign-in or sign-up pages

@@ -218,7 +218,9 @@ export function CompanyAnalyticsDashboard() {
                   <p className="text-sm font-medium text-green-600">Active Companies</p>
                   <p className="text-3xl font-bold text-green-900">{metrics.activeCompanies}</p>
                   <p className="text-sm text-green-600 mt-2">
-                    {((metrics.activeCompanies / metrics.totalCompanies) * 100).toFixed(1)}% active
+                    {metrics.totalCompanies > 0 
+                      ? ((metrics.activeCompanies / metrics.totalCompanies) * 100).toFixed(1) 
+                      : 0}% active
                   </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-600" />
@@ -289,7 +291,15 @@ export function CompanyAnalyticsDashboard() {
                     dataKey="date" 
                     stroke="#6b7280"
                     fontSize={12}
-                    tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                    tickFormatter={(value) => {
+                      try {
+                        const date = new Date(value);
+                        if (isNaN(date.getTime())) return value;
+                        return format(date, 'MMM dd');
+                      } catch {
+                        return value;
+                      }
+                    }}
                   />
                   <YAxis stroke="#6b7280" fontSize={12} />
                   <Tooltip 
@@ -339,41 +349,49 @@ export function CompanyAnalyticsDashboard() {
             <CardDescription>Company health score distribution</CardDescription>
           </CardHeader>
           <CardContent>
-            {analytics.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Excellent (80+)', value: analytics.filter(a => a.healthScore >= 80).length, color: '#10b981' },
-                      { name: 'Good (60-79)', value: analytics.filter(a => a.healthScore >= 60 && a.healthScore < 80).length, color: '#f59e0b' },
-                      { name: 'Needs Attention (<60)', value: analytics.filter(a => a.healthScore < 60).length, color: '#ef4444' }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {[
-                      { name: 'Excellent (80+)', value: analytics.filter(a => a.healthScore >= 80).length, color: '#10b981' },
-                      { name: 'Good (60-79)', value: analytics.filter(a => a.healthScore >= 60 && a.healthScore < 80).length, color: '#f59e0b' },
-                      { name: 'Needs Attention (<60)', value: analytics.filter(a => a.healthScore < 60).length, color: '#ef4444' }
-                    ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
+            {analytics.length > 0 ? (() => {
+              const healthData = [
+                { name: 'Excellent (80+)', value: analytics.filter(a => a.healthScore >= 80).length, color: '#10b981' },
+                { name: 'Good (60-79)', value: analytics.filter(a => a.healthScore >= 60 && a.healthScore < 80).length, color: '#f59e0b' },
+                { name: 'Needs Attention (<60)', value: analytics.filter(a => a.healthScore < 60).length, color: '#ef4444' }
+              ].filter(item => item.value > 0); // Only show categories with data
+              
+              return healthData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={healthData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, value, percent }) =>
+                        `${name}: ${value} (${((percent ?? 0) * 100).toFixed(0)}%)`}
+                    >
+                      {healthData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-gray-500">
+                  <div className="text-center">
+                    <Activity className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <p>No health data available</p>
+                  </div>
+                </div>
+              );
+            })() : (
               <div className="flex items-center justify-center h-64 text-gray-500">
                 <div className="text-center">
                   <Activity className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -418,7 +436,7 @@ export function CompanyAnalyticsDashboard() {
                       <td className="py-3 px-4">
                         <Badge className={getHealthScoreColor(company.healthScore)}>
                           {getHealthScoreIcon(company.healthScore)}
-                          <span className="ml-1">{company.healthScore.toFixed(1)}</span>
+                          <span className="ml-1">{(company.healthScore || 0).toFixed(1)}</span>
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
@@ -429,20 +447,28 @@ export function CompanyAnalyticsDashboard() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="text-sm">
-                          <div className="font-medium">{company.utilizationRate.toFixed(1)}%</div>
-                          <div className="text-gray-500">{company.traineeCount}/{company.maxTrainees}</div>
+                          <div className="font-medium">{(company.utilizationRate || 0).toFixed(1)}%</div>
+                          <div className="text-gray-500">{company.traineeCount || 0}/{company.maxTrainees || 0}</div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center">
-                          {getTrendIcon(company.growthRate)}
+                          {getTrendIcon(company.growthRate || 0)}
                           <span className="ml-1 text-sm">
-                            {company.growthRate > 0 ? '+' : ''}{company.growthRate.toFixed(1)}%
+                            {(company.growthRate || 0) > 0 ? '+' : ''}{(company.growthRate || 0).toFixed(1)}%
                           </span>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-500">
-                        {format(new Date(company.lastActivity), 'MMM dd, yyyy')}
+                        {(() => {
+                          try {
+                            const date = new Date(company.lastActivity);
+                            if (isNaN(date.getTime())) return 'N/A';
+                            return format(date, 'MMM dd, yyyy');
+                          } catch {
+                            return 'N/A';
+                          }
+                        })()}
                       </td>
                     </tr>
                   ))}

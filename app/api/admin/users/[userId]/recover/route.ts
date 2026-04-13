@@ -10,7 +10,7 @@ const supabase = createClient(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Check if user is site admin
@@ -19,7 +19,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { userId } = params;
+    const { userId } = await params;
 
     // Check if user exists and is soft-deleted
     const { data: user, error: fetchError } = await supabase

@@ -75,7 +75,7 @@ export default async function AdminCompaniesPage() {
     <RoleGate requiredRole="site_admin">
       <div className="space-y-6">
         {/* Enhanced Page Header */}
-        <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-lg p-6 border border-blue-200/20">
+        <div className="bg-black rounded-lg p-6 border border-blue-200/20">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-white flex items-center gap-3">

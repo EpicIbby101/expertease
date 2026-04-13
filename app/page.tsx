@@ -4,6 +4,7 @@ import { createServerActionClient } from '@/lib/supabase';
 import MarketingCards from '@/components/homepage/marketing-cards';
 import Pricing from '@/components/homepage/pricing';
 import SideBySide from '@/components/homepage/side-by-side';
+import MembersAccreditation from '@/components/homepage/members-accreditation';
 import PageWrapper from '@/components/wrapper/page-wrapper';
 import { WaitlistForm } from '@/lib/components/waitlist-form';
 import FloatingCTA from '@/components/homepage/floating-cta';
@@ -22,10 +23,10 @@ export default async function HomePage() {
       .from('users')
       .select('role, email, first_name, last_name, created_at')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      console.error('Error fetching user role:', error);
+      console.error('Error fetching user role:', error.message, error.code, error.details);
       // If user doesn't exist in Supabase yet, show setup message
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -46,6 +47,28 @@ export default async function HomePage() {
               </p>
               <p className="text-sm text-blue-800 mt-2">
                 <strong>Debug:</strong> <a href="/api/debug-user" className="text-blue-600 underline">Check debug info</a>
+              </p>
+            </div>
+        </div>
+      </div>
+    );
+    }
+
+    // No row yet (webhook still processing or not configured) — same UX, no console error
+    if (!user) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Welcome!</h1>
+            <p className="text-gray-600 mb-4">
+              Your account is being set up. Sign in completed in Clerk; we’re waiting for your profile in the database. Try refreshing in a few seconds, or confirm the Clerk webhook is delivered to this app.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <p className="text-sm text-blue-800">
+                <strong>User ID:</strong> {userId}
+              </p>
+              <p className="text-sm text-blue-800 mt-2">
+                <strong>Status:</strong> No <code className="text-xs">users</code> row yet — check Clerk → Webhooks for <code className="text-xs">user.created</code>.
               </p>
             </div>
           </div>
@@ -102,24 +125,32 @@ export default async function HomePage() {
         <HeroSection />
       </section>
       
-      <section id="benefits" className="flex py-24 md:py-16 w-full justify-center items-center px-4 sm:px-6">
-        <SideBySide />
+      <section id="benefits" className="w-full py-12 md:py-16 lg:py-20">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6">
+          <SideBySide />
+        </div>
       </section>
       
-      <section id="pricing" className="flex justify-center items-center w-full py-24 md:py-16 min-h-[600px] px-4 sm:px-6">
-        <div className="w-full max-w-6xl mx-auto">
+      <section id="accreditation" className="w-full py-12 md:py-16 lg:py-20">
+        <MembersAccreditation />
+      </section>
+      
+      <section id="pricing" className="w-full py-12 md:py-16 lg:py-20">
+        <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
           <Pricing />
         </div>
       </section>
       
-      <section id="waitlist" className="flex justify-center items-center w-full py-24 md:py-24 min-h-[400px] px-4 sm:px-6">
-        <div className="w-full max-w-2xl mx-auto">
+      <section id="waitlist" className="w-full py-12 md:py-16 lg:py-20 bg-black">
+        <div className="w-full max-w-2xl mx-auto px-4 sm:px-6">
           <WaitlistForm />
         </div>
       </section>
       
-      <section id="faq" className="flex justify-center items-center w-full py-24 md:py-24 px-4 sm:px-6">
-        <FAQ />
+      <section id="faq" className="w-full py-12 md:py-16 lg:py-20 bg-black">
+        <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
+          <FAQ />
+        </div>
       </section>
     </PageWrapper>
   );

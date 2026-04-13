@@ -226,10 +226,13 @@ export function CompanyDashboardAnalytics({ companyId, companyName }: CompanyDas
                       borderRadius: '8px',
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
-                    formatter={(value: any, name: string) => [
-                      `${value}${name === 'completionRate' ? '%' : ''}`,
-                      name === 'completionRate' ? 'Completion Rate' : name
-                    ]}
+                    formatter={(value, name) => {
+                      const key = String(name ?? '');
+                      return [
+                        `${value}${key === 'completionRate' ? '%' : ''}`,
+                        key === 'completionRate' ? 'Completion Rate' : key,
+                      ];
+                    }}
                   />
                   <Bar dataKey="completionRate" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                 </BarChart>

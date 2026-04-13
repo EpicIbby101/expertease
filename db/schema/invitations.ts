@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, varchar, boolean, jsonb } from 'drizzle-orm/pg-core';
 import { users } from './users';
 import { companies } from './companies';
 
@@ -7,7 +7,8 @@ export const invitations = pgTable('invitations', {
   email: text('email').notNull(),
   role: text('role', { enum: ['site_admin', 'company_admin', 'trainee'] }).notNull(),
   company_id: uuid('company_id').references(() => companies.id),
-  invited_by: uuid('invited_by').references(() => users.id).notNull(),
+  // Clerk user id string; references users.user_id (not users.id serial PK)
+  invited_by: varchar('invited_by').references(() => users.userId).notNull(),
   status: text('status', { enum: ['pending', 'accepted', 'expired', 'cancelled'] }).default('pending'),
   token: text('token').unique().notNull(), // Unique invitation token
   expires_at: timestamp('expires_at').notNull(),

@@ -184,11 +184,10 @@ export class SystemConfigManager {
         return {
           key,
           value: this.serializeValue(value, existingConfig.data_type),
-          category: existingConfig.category,
           data_type: existingConfig.data_type,
           updated_by: userId || null
         };
-      }).filter(Boolean);
+      }).filter((row): row is NonNullable<typeof row> => row !== null);
 
       if (updates.length === 0) {
         console.error('No valid updates to process');

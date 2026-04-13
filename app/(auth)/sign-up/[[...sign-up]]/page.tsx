@@ -58,7 +58,7 @@ export default function SignUpPage() {
               cardContent: "px-6 py-8",
             }
           }}
-          redirectUrl={invitationData ? `/accept-invitation?token=${invitationData.token}` : '/dashboard'}
+          redirectUrl={invitationData ? `/accept-invitation?token=${encodeURIComponent(invitationData.token)}` : '/dashboard'}
           initialValues={{
             emailAddress: invitationData?.email || "",
             firstName: invitationData?.first_name || "",
