@@ -9,21 +9,21 @@ import { Cover } from "@/components/ui/cover";
 
 const features = [
   {
-    name: "Launch faster",
+    name: "Tailored Training Programs",
     description:
-      "We provide top-tier training for workers, ensuring they gain the skills needed for excellence.",
+      "Our industry-leading programs provide the skills to recognise, prevent, and respond to crises in the workplace. Our specialised training programs cater to the unique needs of each industry.",
     icon: Zap,
   },
   {
-    name: "Production Ready",
+    name: "Expert Instructors",
     description:
-      "Our training and tech solutions help companies find the perfect fit for their staffing needs.",
+      "Learn from industry experts with extensive experience in training and tech.",
     icon: Computer,
   },
   {
-    name: "Scale with confidence",
+    name: "Aftercare Services",
     description:
-      "Join hands with us to enhance your organisations capabilities.",
+      "The after care of our clients is something we take pride in. We regularly check in with our clients to make certain of the knowledge and training given. We also work with one of the UK's biggest suppliers of body cameras to ensure companies maintain the high standards of training given to staff.",
     icon: Network,
   },
 ];
@@ -56,7 +56,7 @@ export default function SideBySide() {
   const isInView = useInView(ref, { once: false, amount: 0.2 });
 
   return (
-    <motion.div ref={ref} className="overflow-hidden bg-black py-16 w-full">
+    <motion.div ref={ref} className="overflow-hidden bg-black w-full">
       <style>{`
     circle {
       stroke: rgba(74, 222, 128, 0.2) !important;
@@ -103,7 +103,7 @@ export default function SideBySide() {
                       stiffness: 100,
                     }}
                   >
-                    <dt className="inline font-semibold text-white mb-1 flex items-start">
+                    <dt className="font-semibold text-white mb-1 flex items-start">
                       <motion.div
                         className="absolute left-1 top-1 h-5 w-5 text-green-400"
                         whileHover={{

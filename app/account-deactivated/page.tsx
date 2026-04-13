@@ -1,4 +1,5 @@
-import { AlertCircle, Mail, Shield } from 'lucide-react';
+import Link from 'next/link';
+import { AlertCircle, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -40,18 +41,11 @@ export default function AccountDeactivatedPage() {
           </div>
 
           <div className="flex gap-2">
-            <Button 
-              onClick={() => window.location.href = '/auth/sign-in'} 
-              variant="outline" 
-              className="flex-1"
-            >
-              Try Again
+            <Button asChild variant="outline" className="flex-1">
+              <Link href="/auth/sign-in">Try Again</Link>
             </Button>
-            <Button 
-              onClick={() => window.location.href = 'mailto:support@example.com'} 
-              className="flex-1"
-            >
-              Contact Support
+            <Button asChild className="flex-1">
+              <a href="mailto:support@example.com">Contact Support</a>
             </Button>
           </div>
         </CardContent>

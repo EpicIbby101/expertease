@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,7 +30,8 @@ import {
   Download,
   Calendar,
   BarChart3,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  AlertTriangle
 } from 'lucide-react';
 
 interface OverviewMetrics {
@@ -93,20 +94,35 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 
 export function AnalyticsDashboard() {
   const [data, setData] = useState<AnalyticsData>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState('30d');
   const [activeTab, setActiveTab] = useState('overview');
 
   const fetchData = async (metric: string = 'overview') => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/admin/analytics?period=${period}&metric=${metric}`);
-      if (!response.ok) throw new Error('Failed to fetch analytics');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = errorData.error || `Failed to fetch analytics (${response.status})`;
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
       
       const result = await response.json();
-      setData(prev => ({ ...prev, ...result }));
+      console.log('Analytics API response:', result); // Debug log
+      if (result && Object.keys(result).length > 0) {
+        setData(prev => ({ ...prev, ...result }));
+      } else {
+        setError('No data returned from API');
+      }
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      if (!error) {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -114,13 +130,13 @@ export function AnalyticsDashboard() {
 
   useEffect(() => {
     fetchData('overview');
-  }, [period]);
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (activeTab !== 'overview') {
       fetchData(activeTab);
     }
-  }, [activeTab, period]);
+  }, [activeTab, period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -135,6 +151,8 @@ export function AnalyticsDashboard() {
     }
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  const formatTooltipLabel = (label: ReactNode) => formatDate(String(label ?? ''));
 
   const exportData = () => {
     // Simple CSV export functionality
@@ -193,8 +211,54 @@ export function AnalyticsDashboard() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">Loading analytics data...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <p className="text-red-800 font-medium">Error loading analytics: {error}</p>
+            </div>
+            <Button 
+              onClick={() => fetchData('overview')} 
+              variant="outline"
+              size="sm"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* No Data State */}
+      {!loading && !error && !data.overview && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">No analytics data available</p>
+            <Button 
+              onClick={() => fetchData('overview')} 
+              variant="outline"
+              className="mt-4"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Enhanced Overview Cards */}
-      {data.overview && (
+      {!loading && data.overview && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -330,7 +394,7 @@ export function AnalyticsDashboard() {
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
-                        labelFormatter={formatDate}
+                        labelFormatter={formatTooltipLabel}
                       />
                       <Area 
                         type="monotone" 
@@ -388,7 +452,7 @@ export function AnalyticsDashboard() {
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
-                        labelFormatter={formatDate}
+                        labelFormatter={formatTooltipLabel}
                       />
                       <Area 
                         type="monotone" 
@@ -444,7 +508,7 @@ export function AnalyticsDashboard() {
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
-                        labelFormatter={formatDate}
+                        labelFormatter={formatTooltipLabel}
                       />
                       <Bar 
                         dataKey="count" 
@@ -494,7 +558,7 @@ export function AnalyticsDashboard() {
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
-                        labelFormatter={formatDate}
+                        labelFormatter={formatTooltipLabel}
                       />
                       <Line 
                         type="monotone" 
@@ -608,7 +672,7 @@ export function AnalyticsDashboard() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" tickFormatter={formatDate} />
                       <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
+                      <Tooltip labelFormatter={formatTooltipLabel} />
                       <Area type="monotone" dataKey="count" stroke="#ffc658" fill="#ffc658" fillOpacity={0.6} />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -660,7 +724,7 @@ export function AnalyticsDashboard() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" tickFormatter={formatDate} />
                       <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
+                      <Tooltip labelFormatter={formatTooltipLabel} />
                       <Line type="monotone" dataKey="cumulative" stroke="#8884d8" strokeWidth={3} />
                       <Line type="monotone" dataKey="count" stroke="#82ca9d" strokeWidth={2} strokeDasharray="5 5" />
                     </LineChart>
@@ -685,7 +749,7 @@ export function AnalyticsDashboard() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" tickFormatter={formatDate} />
                       <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
+                      <Tooltip labelFormatter={formatTooltipLabel} />
                       <Line type="monotone" dataKey="cumulative" stroke="#82ca9d" strokeWidth={3} />
                       <Line type="monotone" dataKey="count" stroke="#8884d8" strokeWidth={2} strokeDasharray="5 5" />
                     </LineChart>
@@ -761,7 +825,7 @@ export function AnalyticsDashboard() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" tickFormatter={formatDate} />
                       <YAxis />
-                      <Tooltip labelFormatter={formatDate} />
+                      <Tooltip labelFormatter={formatTooltipLabel} />
                       <Area type="monotone" dataKey="count" stroke="#ffc658" fill="#ffc658" fillOpacity={0.6} />
                     </AreaChart>
                   </ResponsiveContainer>

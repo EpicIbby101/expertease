@@ -10,7 +10,7 @@ const supabase = createClient(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Check if user is site admin
@@ -19,7 +19,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { userId } = params;
+    const { userId } = await params;
 
     // Check if user exists and is soft-deleted
     const { data: user, error: fetchError } = await supabase
@@ -55,7 +55,6 @@ export async function DELETE(
         role: user.role, 
         deleted_at: user.deleted_at 
       },
-      newValues: null,
       metadata: { 
         permanently_deleted_user_email: user.email,
         original_deletion_date: user.deleted_at 

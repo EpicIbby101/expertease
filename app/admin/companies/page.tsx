@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { RoleGate } from '@/components/RoleGate';
 import { CompanyManager } from '@/components/CompanyManager';
+import { CompanyAnalyticsDashboard } from '@/components/CompanyAnalyticsDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building, Users, Award, RefreshCw, Trash2, Download, Settings, Plus } from 'lucide-react';
+import { Building, Users, Award, RefreshCw, Trash2, Download, Settings, Plus, BarChart3, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,46 +75,51 @@ export default async function AdminCompaniesPage() {
     <RoleGate requiredRole="site_admin">
       <div className="space-y-6">
         {/* Enhanced Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Company Management</h1>
-            <p className="text-gray-600 mt-1">Manage companies and their administrators</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                <Building className="h-4 w-4 text-blue-600" />
-                <span className="font-medium text-gray-900">{stats.totalCompanies}</span>
-                <span>total</span>
-              </div>
-              <div className="h-4 w-px bg-gray-300"></div>
-              <div className="flex items-center gap-2">
-                <Award className="h-4 w-4 text-green-600" />
-                <span className="font-medium text-green-600">{stats.activeCompanies}</span>
-                <span>active</span>
-              </div>
-              <div className="h-4 w-px bg-gray-300"></div>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-orange-600" />
-                <span className="font-medium text-orange-600">{stats.totalTrainees}</span>
-                <span>trainees</span>
-              </div>
+        <div className="bg-black rounded-lg p-6 border border-blue-200/20">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                <Building className="h-8 w-8" />
+                Company Management
+              </h1>
+              <p className="text-gray-400 mt-2">Comprehensive company management and analytics dashboard</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Refresh
-              </Button>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-              <Link href="/admin/recycling-bin">
-                <Button variant="outline" size="sm" className="flex items-center gap-2 text-red-600 hover:text-red-700">
-                  <Trash2 className="h-4 w-4" />
-                  Recycling Bin
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 text-sm text-gray-300">
+                <div className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-blue-400" />
+                  <span className="font-medium text-white">{stats.totalCompanies}</span>
+                  <span>total</span>
+                </div>
+                <div className="h-4 w-px bg-gray-400"></div>
+                <div className="flex items-center gap-2">
+                  <Award className="h-4 w-4 text-green-400" />
+                  <span className="font-medium text-green-400">{stats.activeCompanies}</span>
+                  <span>active</span>
+                </div>
+                <div className="h-4 w-px bg-gray-400"></div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-orange-400" />
+                  <span className="font-medium text-orange-400">{stats.totalTrainees}</span>
+                  <span>trainees</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex items-center gap-2 bg-white/10 border-white/20 text-white hover:bg-white/20">
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
                 </Button>
-              </Link>
+                <Button variant="outline" size="sm" className="flex items-center gap-2 bg-white/10 border-white/20 text-white hover:bg-white/20">
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+                <Link href="/admin/recycling-bin">
+                  <Button variant="outline" size="sm" className="flex items-center gap-2 bg-white/10 border-white/20 text-red-400 hover:bg-red-500/20">
+                    <Trash2 className="h-4 w-4" />
+                    Recycling Bin
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -126,9 +133,27 @@ export default async function AdminCompaniesPage() {
           </div>
         )}
 
+        {/* Tabs for Analytics and Management */}
+        <Tabs defaultValue="analytics" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Analytics & Insights
+            </TabsTrigger>
+            <TabsTrigger value="management" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              Company Management
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Company Management */}
-        <CompanyManager companies={companiesWithUsers || []} />
+          <TabsContent value="analytics" className="space-y-6">
+            <CompanyAnalyticsDashboard />
+          </TabsContent>
+
+          <TabsContent value="management" className="space-y-6">
+            <CompanyManager companies={companiesWithUsers || []} />
+          </TabsContent>
+        </Tabs>
 
       </div>
     </RoleGate>

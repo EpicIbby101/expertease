@@ -112,7 +112,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Create a unique invitation token for the redirect URL
-    const invitationToken = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Use URL-safe characters only (alphanumeric + dash and underscore)
+    const randomPart = Math.random().toString(36).substring(2, 11); // Use substring instead of deprecated substr
+    const timestamp = Date.now();
+    const invitationToken = `inv_${timestamp}_${randomPart}`.replace(/[^a-zA-Z0-9_-]/g, '');
     
     // Get company name if companyId is provided
     let companyName = null;
@@ -145,9 +148,11 @@ export async function POST(request: NextRequest) {
 
     // Create Clerk invitation using the proper invitation system
     // The redirect URL now includes the token so the webhook can link users to invitations
+    // URL encode the token to ensure special characters are handled correctly
+    const encodedToken = encodeURIComponent(invitationToken);
     const clerkInvitation = await clerkClient.invitations.createInvitation({
       emailAddress: email,
-      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/accept-invitation?token=${invitationToken}`,
+      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/accept-invitation?token=${encodedToken}`,
       publicMetadata: invitationMetadata,
     });
 
@@ -159,35 +164,52 @@ export async function POST(request: NextRequest) {
     });
 
     // Store invitation record in Supabase for tracking
+    console.log('Storing invitation in Supabase with token:', invitationToken);
+    
+    // Prepare user_data with company_name included
+    const userDataWithCompany = {
+      first_name: first_name.trim(),
+      last_name: last_name.trim(),
+      phone: phone?.trim() || null,
+      job_title: job_title?.trim() || null,
+      department: department?.trim() || null,
+      location: location?.trim() || null,
+      date_of_birth: date_of_birth,
+      company_name: companyName, // Store company name in user_data instead
+    };
+    
     const { data: invitation, error: invitationError } = await supabase
       .from('invitations')
       .insert({
         email,
         role,
         company_id: companyId || null,
-        company_name: companyName, // Include company name
+        // company_name is not a column in invitations table, store it in user_data instead
         invited_by: userId,
         clerk_invitation_id: clerkInvitation.id,
         token: invitationToken, // Store the unique token
         status: 'pending',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-        user_data: {
-          first_name: first_name.trim(),
-          last_name: last_name.trim(),
-          phone: phone?.trim() || null,
-          job_title: job_title?.trim() || null,
-          department: department?.trim() || null,
-          location: location?.trim() || null,
-          date_of_birth: date_of_birth,
-        }
+        user_data: userDataWithCompany,
       })
       .select()
       .single();
 
     if (invitationError) {
       console.error('Error creating invitation record:', invitationError);
-      // Don't fail the whole process if Supabase record creation fails
-      // Clerk invitation was already sent successfully
+      console.error('Error details:', JSON.stringify(invitationError, null, 2));
+      console.error('Error code:', invitationError.code);
+      console.error('Error message:', invitationError.message);
+      console.error('Token that failed to insert:', invitationToken);
+      // This is a critical error - if we can't store the invitation, the token won't be found
+      return NextResponse.json({ 
+        error: 'Failed to create invitation record', 
+        details: invitationError.message 
+      }, { status: 500 });
+    } else {
+      console.log('Invitation stored successfully in Supabase:', invitation?.id);
+      console.log('Stored token:', invitation?.token);
+      console.log('Token match check:', invitation?.token === invitationToken);
     }
 
     return NextResponse.json({ 

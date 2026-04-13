@@ -9,11 +9,15 @@ const supabase = createClient(
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const token = searchParams.get('token');
+    let token = searchParams.get('token');
 
     if (!token) {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 });
     }
+
+    // Decode the token in case it was URL-encoded
+    token = decodeURIComponent(token);
+    console.log('Validating invitation token:', token);
 
     // Find the invitation by token
     const { data: invitation, error } = await supabase
@@ -23,7 +27,17 @@ export async function GET(request: NextRequest) {
       .eq('status', 'pending')
       .single();
 
-    if (error || !invitation) {
+    if (error) {
+      console.error('Database error when validating invitation:', error);
+      console.error('Token being searched:', token);
+      return NextResponse.json({ 
+        error: 'Invalid or expired invitation',
+        details: error.message 
+      }, { status: 404 });
+    }
+    
+    if (!invitation) {
+      console.error('No invitation found for token:', token);
       return NextResponse.json({ error: 'Invalid or expired invitation' }, { status: 404 });
     }
 

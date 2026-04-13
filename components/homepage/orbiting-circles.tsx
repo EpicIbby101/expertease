@@ -57,7 +57,7 @@ export function OrbitingCirclesComponent() {
   return (
     <div className="relative flex h-[500px] w-full max-w-[32rem] items-center justify-center overflow-hidden rounded-lg md:h-[600px] md:max-w-[42rem]">
       <span className="pointer-events-none whitespace-pre-wrap bg-gradient-to-b from-black to-gray-500/80 bg-clip-text text-center text-5xl font-semibold leading-tight text-transparent md:text-8xl md:leading-none dark:from-white dark:to-slate-900/10">
-        Ship Fast
+        Expert Ease
       </span>
 
       {/* Inner Circles - Core Technologies */}

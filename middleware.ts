@@ -29,7 +29,7 @@ async function getUserRole(userId: string) {
   const { data } = await supabase
     .from('users')
     .select('role')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .single();
   
   return data?.role;
@@ -92,6 +92,11 @@ export default async function middleware(req: any) {
       if (!userId && (isProtectedRoute(req) || isOnboardingRoute(req))) {
         // Redirect to sign-in, CSP will be applied by next.config.js
         return await auth().redirectToSignIn({ returnBackUrl: req.url });
+      }
+      
+      // Allow accept-invitation route without authentication checks
+      if (path.startsWith('/accept-invitation')) {
+        return NextResponse.next();
       }
       
       // User is authenticated

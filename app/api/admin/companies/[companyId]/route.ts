@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { AuditLogger } from '@/lib/audit-logger';
+import { AuditLogger } from '@/lib/audit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,10 +9,10 @@ const supabase = createClient(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { companyId: string } }
+  { params }: { params: Promise<{ companyId: string }> }
 ) {
   try {
-    const { companyId } = params;
+    const { companyId } = await params;
     const body = await request.json();
     const { name, slug, description, max_trainees } = body;
 
@@ -102,22 +102,25 @@ export async function PUT(
       );
     }
 
-    // Log the update
     await AuditLogger.log({
+      userId: undefined,
       action: 'company_updated',
       resourceType: 'company',
       resourceId: companyId,
-      details: {
-        company_name: updatedCompany.name,
-        changes: {
-          name: existingCompany.name !== name ? { from: existingCompany.name, to: name } : undefined,
-          slug: existingCompany.slug !== slug ? { from: existingCompany.slug, to: slug } : undefined,
-          description: existingCompany.description !== description ? { from: existingCompany.description, to: description } : undefined,
-          max_trainees: existingCompany.max_trainees !== max_trainees ? { from: existingCompany.max_trainees, to: max_trainees } : undefined,
-        }
+      oldValues: {
+        name: existingCompany.name,
+        slug: existingCompany.slug,
+        description: existingCompany.description,
+        max_trainees: existingCompany.max_trainees,
       },
-      userId: 'system', // TODO: Get actual user ID from auth
-      userRole: 'site_admin'
+      newValues: {
+        name: updatedCompany.name,
+        slug: updatedCompany.slug,
+        description: updatedCompany.description,
+        max_trainees: updatedCompany.max_trainees,
+      },
+      metadata: { company_name: updatedCompany.name },
+      category: 'company_management',
     });
 
     return NextResponse.json({
