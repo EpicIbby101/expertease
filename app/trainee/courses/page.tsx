@@ -8,123 +8,12 @@ import Link from 'next/link';
 import { BookOpen, Search, Clock, Users, Star, ArrowRight, Play, CheckCircle, Filter } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs/server';
+import { getPublishedCoursesForCatalog } from '@/lib/courses';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  duration: number; // in hours
-  lessons: number;
-  enrolledCount: number;
-  rating: number;
-  thumbnail?: string;
-  status: 'available' | 'enrolled' | 'completed' | 'in_progress';
-  progress?: number;
-  enrolledDate?: string;
-}
-
-async function getCourses(userId: string): Promise<Course[]> {
-  try {
-    // For now, simulate course data since we don't have a courses table yet
-    // In a real implementation, you'd fetch from:
-    // - courses table (all available courses)
-    // - course_enrollments table (user's enrollments)
-    // - course_progress table (user's progress per course)
-
-    const allCourses: Course[] = [
-      {
-        id: '1',
-        title: 'Safety Training Fundamentals',
-        description: 'Learn essential safety protocols and procedures for workplace safety. Covering hazard identification, emergency response, and safety equipment usage.',
-        category: 'Safety',
-        difficulty: 'beginner',
-        duration: 4,
-        lessons: 12,
-        enrolledCount: 245,
-        rating: 4.8,
-        status: 'in_progress',
-        progress: 65,
-        enrolledDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: '2',
-        title: 'Equipment Handling & Maintenance',
-        description: 'Comprehensive guide to proper equipment handling, maintenance procedures, and troubleshooting common issues.',
-        category: 'Operations',
-        difficulty: 'intermediate',
-        duration: 6,
-        lessons: 18,
-        enrolledCount: 189,
-        rating: 4.6,
-        status: 'enrolled',
-        progress: 0,
-        enrolledDate: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: '3',
-        title: 'Emergency Procedures & Response',
-        description: 'Critical training on emergency procedures, evacuation protocols, first aid basics, and crisis management.',
-        category: 'Safety',
-        difficulty: 'beginner',
-        duration: 3,
-        lessons: 10,
-        enrolledCount: 312,
-        rating: 4.9,
-        status: 'completed',
-        progress: 100,
-        enrolledDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: '4',
-        title: 'Quality Standards & Compliance',
-        description: 'Understand quality standards, compliance requirements, quality control procedures, and documentation best practices.',
-        category: 'Quality',
-        difficulty: 'advanced',
-        duration: 8,
-        lessons: 24,
-        enrolledCount: 156,
-        rating: 4.7,
-        status: 'available'
-      },
-      {
-        id: '5',
-        title: 'Workplace Communication Skills',
-        description: 'Improve your communication skills for better workplace collaboration, conflict resolution, and team effectiveness.',
-        category: 'Professional Development',
-        difficulty: 'beginner',
-        duration: 5,
-        lessons: 15,
-        enrolledCount: 298,
-        rating: 4.5,
-        status: 'available'
-      },
-      {
-        id: '6',
-        title: 'Data Analysis & Reporting',
-        description: 'Learn to analyze data, create reports, and use analytical tools for informed decision-making.',
-        category: 'Skills',
-        difficulty: 'intermediate',
-        duration: 7,
-        lessons: 20,
-        enrolledCount: 201,
-        rating: 4.6,
-        status: 'available'
-      }
-    ];
-
-    return allCourses;
-  } catch (error) {
-    console.error('Error fetching courses:', error);
-    return [];
-  }
-}
 
 export default async function CoursesPage() {
   const { userId } = await auth();
@@ -133,7 +22,7 @@ export default async function CoursesPage() {
     return null;
   }
 
-  const courses = await getCourses(userId);
+  const courses = await getPublishedCoursesForCatalog(userId);
 
   // Get user details for personalized header
   const { data: currentUser } = await supabase
@@ -293,13 +182,17 @@ export default async function CoursesPage() {
                       <span>{course.lessons} lessons</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium">{course.rating}</span>
-                      <span className="text-xs text-gray-500">({course.enrolledCount})</span>
+                  {course.rating > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm font-medium">{course.rating}</span>
+                        {course.enrolledCount > 0 && (
+                          <span className="text-xs text-gray-500">({course.enrolledCount})</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   {course.progress !== undefined && course.progress > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs">

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   Users, 
   Search, 
@@ -28,6 +27,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CompanyTraineeInvites } from '@/components/CompanyTraineeInvites';
+import { CompanyInviteTraineeModal } from '@/components/CompanyInviteTraineeModal';
 
 interface Trainee {
   id: string;
@@ -61,13 +61,7 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTrainee, setSelectedTrainee] = useState<Trainee | null>(null);
-  const [inviteFormData, setInviteFormData] = useState({
-    email: '',
-    first_name: '',
-    last_name: '',
-    message: `Welcome to ${companyName}! You've been invited to join our training program.`
-  });
-  
+
   // Filtering state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -96,47 +90,6 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
       toast.error('An error occurred while fetching trainees');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleInviteTrainee = async () => {
-    if (!inviteFormData.email) {
-      toast.error('Please enter an email address');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/company/create-trainee', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: inviteFormData.email,
-          first_name: inviteFormData.first_name,
-          last_name: inviteFormData.last_name,
-          companyId,
-          message: inviteFormData.message
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success('Trainee invited successfully!');
-        setIsInviteDialogOpen(false);
-        setInviteFormData({
-          email: '',
-          first_name: '',
-          last_name: '',
-          message: `Welcome to ${companyName}! You've been invited to join our training program.`
-        });
-        fetchTrainees();
-        setPendingInvitesRefresh((n) => n + 1);
-      } else {
-        toast.error(data.error || 'Failed to invite trainee');
-      }
-    } catch (error) {
-      console.error('Error inviting trainee:', error);
-      toast.error('An error occurred while inviting trainee');
     }
   };
 
@@ -524,67 +477,16 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
         </CardContent>
       </Card>
 
-      {/* Invite Trainee Dialog */}
-      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Invite Trainee</DialogTitle>
-            <DialogDescription>
-              Send an invitation to a new trainee to join your company's training program.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="trainee@example.com"
-                value={inviteFormData.email}
-                onChange={(e) => setInviteFormData({ ...inviteFormData, email: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="first_name">First Name</Label>
-                <Input
-                  id="first_name"
-                  placeholder="John"
-                  value={inviteFormData.first_name}
-                  onChange={(e) => setInviteFormData({ ...inviteFormData, first_name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="last_name">Last Name</Label>
-                <Input
-                  id="last_name"
-                  placeholder="Doe"
-                  value={inviteFormData.last_name}
-                  onChange={(e) => setInviteFormData({ ...inviteFormData, last_name: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="message">Welcome Message</Label>
-              <Textarea
-                id="message"
-                placeholder="Welcome message..."
-                value={inviteFormData.message}
-                onChange={(e) => setInviteFormData({ ...inviteFormData, message: e.target.value })}
-                rows={4}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleInviteTrainee}>
-              Send Invitation
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CompanyInviteTraineeModal
+        open={isInviteDialogOpen}
+        onOpenChange={setIsInviteDialogOpen}
+        companyId={companyId}
+        companyName={companyName}
+        onSuccess={() => {
+          fetchTrainees();
+          setPendingInvitesRefresh((n) => n + 1);
+        }}
+      />
 
       {/* View Trainee Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>

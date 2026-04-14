@@ -3,12 +3,10 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Users, Plus, Trash2, Mail, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { CompanyTraineeInvites } from '@/components/CompanyTraineeInvites';
+import { CompanyInviteTraineeModal } from '@/components/CompanyInviteTraineeModal';
 
 interface Trainee {
   id: string;
@@ -25,47 +23,7 @@ interface TraineeManagerProps {
 
 export function TraineeManager({ trainees, companyId, companyName }: TraineeManagerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const createTrainee = async () => {
-    console.log('createTrainee called with:', { email, companyId });
-    if (!email || !companyId) {
-      console.log('Missing email or companyId:', { email, companyId });
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      console.log('Sending request to create trainee...');
-      const response = await fetch('/api/company/create-trainee', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, companyId }),
-      });
-
-      console.log('Response status:', response.status);
-      const responseData = await response.json();
-      console.log('Response data:', responseData);
-
-      if (!response.ok) {
-        throw new Error(responseData.error || 'Failed to create trainee');
-      }
-
-      // Reset form and close dialog
-      setEmail('');
-      setIsCreateDialogOpen(false);
-      
-      // Refresh the page to show new trainee
-      window.location.reload();
-    } catch (error) {
-      console.error('Error creating trainee:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create trainee');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const deleteTrainee = async (traineeId: string) => {
     if (!confirm('Are you sure you want to delete this trainee?')) return;
@@ -110,50 +68,26 @@ export function TraineeManager({ trainees, companyId, companyName }: TraineeMana
                 Add new trainees to {companyName || 'your company'}
               </CardDescription>
             </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Trainee
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Trainee</DialogTitle>
-                  <DialogDescription>
-                    Create a new trainee account. They will receive an email invitation to join.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="trainee@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsCreateDialogOpen(false)}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={createTrainee}
-                    disabled={!email || isLoading}
-                  >
-                    {isLoading ? 'Creating...' : 'Create Trainee'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <>
+              <Button
+                type="button"
+                className="flex items-center gap-2"
+                disabled={!companyId}
+                onClick={() => setIsCreateDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Add Trainee
+              </Button>
+              {companyId ? (
+                <CompanyInviteTraineeModal
+                  open={isCreateDialogOpen}
+                  onOpenChange={setIsCreateDialogOpen}
+                  companyId={companyId}
+                  companyName={companyName || 'Your company'}
+                  onSuccess={() => window.location.reload()}
+                />
+              ) : null}
+            </>
           </div>
         </CardHeader>
         <CardContent>
