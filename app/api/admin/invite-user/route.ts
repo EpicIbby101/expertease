@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isClerkAPIResponseError } from '@clerk/shared/error';
 import { getAuthForApi } from '@/lib/auth';
 import { clerkClient } from '@clerk/nextjs/server';
 
@@ -51,9 +52,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email, first name, last name, role, and date of birth are required' }, { status: 400 });
     }
 
+    const emailNormalized = email.trim().toLowerCase();
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(emailNormalized)) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
@@ -92,8 +95,8 @@ export async function POST(request: NextRequest) {
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email)
-      .single();
+      .ilike('email', emailNormalized)
+      .maybeSingle();
 
     if (existingUser) {
       return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
@@ -103,9 +106,9 @@ export async function POST(request: NextRequest) {
     const { data: existingInvitation } = await supabase
       .from('invitations')
       .select('id')
-      .eq('email', email)
+      .ilike('email', emailNormalized)
       .eq('status', 'pending')
-      .single();
+      .maybeSingle();
 
     if (existingInvitation) {
       return NextResponse.json({ error: 'An invitation has already been sent to this email' }, { status: 400 });
@@ -146,13 +149,28 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating Clerk invitation with metadata:', invitationMetadata);
 
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').trim().replace(/\/+$/, '');
+    if (!appUrl) {
+      return NextResponse.json(
+        {
+          error: 'Server misconfiguration',
+          details:
+            'Set NEXT_PUBLIC_APP_URL (e.g. http://localhost:3000 for local dev). Clerk requires an exact allowed redirect URL.',
+        },
+        { status: 500 },
+      );
+    }
+
     // Create Clerk invitation using the proper invitation system
     // The redirect URL now includes the token so the webhook can link users to invitations
     // URL encode the token to ensure special characters are handled correctly
     const encodedToken = encodeURIComponent(invitationToken);
+    const redirectUrl = `${appUrl}/accept-invitation?token=${encodedToken}`;
+
+    // Clerk returns 422 if this URL is not in Dashboard → Paths → Allowed redirect URLs
     const clerkInvitation = await clerkClient.invitations.createInvitation({
-      emailAddress: email,
-      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/accept-invitation?token=${encodedToken}`,
+      emailAddress: emailNormalized,
+      redirectUrl,
       publicMetadata: invitationMetadata,
     });
 
@@ -181,7 +199,7 @@ export async function POST(request: NextRequest) {
     const { data: invitation, error: invitationError } = await supabase
       .from('invitations')
       .insert({
-        email,
+        email: emailNormalized,
         role,
         company_id: companyId || null,
         // company_name is not a column in invitations table, store it in user_data instead
@@ -228,6 +246,20 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error in invitation process:', error);
-    return NextResponse.json({ error: 'Failed to send invitation' }, { status: 500 });
+    if (isClerkAPIResponseError(error)) {
+      const details =
+        error.errors?.map((e) => e.longMessage || e.message).filter(Boolean).join(' — ') ||
+        error.message;
+      return NextResponse.json(
+        { error: 'Clerk rejected the invitation', details },
+        { status: error.status && error.status >= 400 && error.status < 600 ? error.status : 422 },
+      );
+    }
+    const details =
+      error instanceof Error ? error.message : typeof error === 'string' ? error : undefined;
+    return NextResponse.json(
+      { error: 'Failed to send invitation', details },
+      { status: 500 },
+    );
   }
 } 

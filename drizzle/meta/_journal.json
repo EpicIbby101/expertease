@@ -12,8 +12,29 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1744588800000,
+      "when": 1776120000000,
       "tag": "0001_rename_users_created_time_to_created_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776121000000,
+      "tag": "0002_add_users_date_of_birth",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776122000000,
+      "tag": "0003_add_users_soft_delete",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776123000000,
+      "tag": "0004_invitations_clerk_invitation_id",
       "breakpoints": true
     }
   ]

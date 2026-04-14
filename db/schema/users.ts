@@ -1,4 +1,4 @@
-import { pgTable, serial, timestamp, varchar, text, uuid, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, timestamp, varchar, text, uuid, boolean, date } from 'drizzle-orm/pg-core';
 import { createId } from '@paralleldrive/cuid2';
 import { companies } from './companies';
 
@@ -30,4 +30,9 @@ export const users = pgTable('users', { // Changed from 'user' to 'users' to mat
   preferredLanguage: text('preferred_language').default('en'),
   lastActiveAt: timestamp('last_active_at'),
   emailVerified: boolean('email_verified').default(false),
+  dateOfBirth: date('date_of_birth'),
+
+  deletedAt: timestamp('deleted_at'),
+  deletedBy: text('deleted_by'),
+  deletedReason: text('deleted_reason'),
 }); 

@@ -144,10 +144,17 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess, o
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      const raw = await response.text();
+      let data: { error?: string; details?: string } = {};
+      try {
+        data = raw ? (JSON.parse(raw) as typeof data) : {};
+      } catch {
+        data = { error: raw || `HTTP ${response.status}` };
+      }
+
       if (!response.ok) {
-        // Show both error and details if present
-        throw new Error(data.error + (data.details ? `: ${data.details}` : ''));
+        const msg = [data.error, data.details].filter(Boolean).join(': ');
+        throw new Error(msg || `Request failed (${response.status})`);
       }
 
       toast.success('Invitation sent successfully!');
@@ -166,8 +173,9 @@ export function InviteUserModal({ isOpen, onClose, companies, onInviteSuccess, o
       onInviteSuccess();
       onClose();
     } catch (err) {
-      // Show the full error message
-      toast.error(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      // Defer toast so Radix Dialog unmount doesn’t race Sonner (avoids parentNode null in dev overlay)
+      queueMicrotask(() => toast.error(message));
     } finally {
       setIsLoading(false);
     }

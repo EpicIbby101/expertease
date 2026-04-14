@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Webhook } from 'svix';
 import { headers } from 'next/headers';
 import { clerkClient } from '@clerk/nextjs/server';
+import { isAppRole, normalizeInviteEmail } from '@/lib/invitation-role';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,175 +53,206 @@ export async function POST(request: NextRequest) {
 
     if (eventType === 'user.created') {
       const { id, email_addresses, public_metadata, first_name, last_name } = evt.data;
-      const email = email_addresses[0]?.email_address;
+      const emailRaw = email_addresses[0]?.email_address;
+      const emailNorm = normalizeInviteEmail(emailRaw);
 
       console.log('User created event details:');
       console.log('- User ID:', id);
-      console.log('- Email:', email);
+      console.log('- Email (raw):', emailRaw, '| normalized:', emailNorm);
       console.log('- First Name:', first_name);
       console.log('- Last Name:', last_name);
       console.log('- Public metadata:', JSON.stringify(public_metadata, null, 2));
 
-      if (!email) {
+      if (!emailNorm) {
         console.error('No email found for user:', id);
         return NextResponse.json({ error: 'No email found' }, { status: 400 });
       }
 
+      const meta =
+        public_metadata && typeof public_metadata === 'object' && !Array.isArray(public_metadata)
+          ? (public_metadata as Record<string, unknown>)
+          : {};
+
       try {
-        // First, try to find the invitation by email in our Supabase table
-        const { data: pendingInvitation, error: invitationError } = await supabase
+        // Pending invite by normalized email (avoid .single() — multiple rows / case issues break it)
+        const { data: byEmailRows, error: inviteEmailErr } = await supabase
           .from('invitations')
           .select('*')
-          .eq('email', email)
+          .ilike('email', emailNorm)
           .eq('status', 'pending')
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-        if (invitationError) {
-          if (invitationError.code === 'PGRST116') {
-            console.log('No pending invitation found for email:', email);
-          } else {
-            console.error('Error checking for pending invitation:', invitationError);
-          }
-        } else {
-          console.log('Found pending invitation in Supabase:', pendingInvitation);
+        if (inviteEmailErr) {
+          console.error('Error querying invitations by email:', inviteEmailErr);
         }
 
-        // If we found an invitation in Supabase, use it
-        if (pendingInvitation) {
-          console.log('Processing invitation from Supabase for user:', pendingInvitation);
-          
-          // Fetch company name if company_id is provided
-          let companyName = null;
-          if (pendingInvitation.company_id) {
-            try {
-              const { data: companyData, error: companyError } = await supabase
-                .from('companies')
-                .select('name')
-                .eq('id', pendingInvitation.company_id)
-                .single();
-              
-              if (companyError) {
-                console.error('Error fetching company name:', companyError);
-              } else {
-                companyName = companyData.name;
-                console.log('Found company name:', companyName);
-              }
-            } catch (err) {
-              console.error('Error in company lookup:', err);
+        let pendingInvitation = byEmailRows?.[0] ?? null;
+
+        // Fallback: Clerk copies invitation publicMetadata onto the user — match our token
+        const tokenFromMeta =
+          typeof meta.invitation_token === 'string' ? meta.invitation_token.trim() : '';
+        if (!pendingInvitation && tokenFromMeta) {
+          const { data: byToken, error: tokErr } = await supabase
+            .from('invitations')
+            .select('*')
+            .eq('token', tokenFromMeta)
+            .eq('status', 'pending')
+            .maybeSingle();
+
+          if (tokErr) {
+            console.error('Error querying invitations by token:', tokErr);
+          } else if (byToken) {
+            pendingInvitation = byToken;
+            console.log('Matched pending invitation by invitation_token from Clerk metadata');
+          }
+        }
+
+        const metaIndicatesInvite =
+          isAppRole(meta.role) || Boolean(tokenFromMeta) || Boolean(meta.company_id);
+        const isInvitedFlow = Boolean(pendingInvitation) || metaIndicatesInvite;
+
+        if (isInvitedFlow) {
+          const roleFromRow = pendingInvitation && isAppRole(pendingInvitation.role)
+            ? pendingInvitation.role
+            : null;
+          const roleFromMeta = isAppRole(meta.role) ? meta.role : null;
+          const resolvedRole = roleFromRow ?? roleFromMeta ?? 'trainee';
+
+          const companyIdFromRow = pendingInvitation?.company_id ?? null;
+          const companyIdMeta = typeof meta.company_id === 'string' ? meta.company_id : null;
+          const resolvedCompanyId = companyIdFromRow ?? companyIdMeta;
+
+          let companyName: string | null =
+            typeof meta.company_name === 'string' ? meta.company_name : null;
+          if (resolvedCompanyId) {
+            const { data: companyData, error: companyError } = await supabase
+              .from('companies')
+              .select('name')
+              .eq('id', resolvedCompanyId)
+              .maybeSingle();
+
+            if (companyError) {
+              console.error('Error fetching company name:', companyError);
+            } else if (companyData?.name) {
+              companyName = companyData.name;
             }
           }
-          
-          // This user was created from an invitation - apply the invitation metadata
+
+          const ud = pendingInvitation?.user_data as Record<string, unknown> | null | undefined;
+
           const invitationMetadata = {
-            role: pendingInvitation.role,
-            company_id: pendingInvitation.company_id,
+            role: resolvedRole,
+            company_id: resolvedCompanyId,
             company_name: companyName,
-            first_name: pendingInvitation.user_data?.first_name || first_name || null,
-            last_name: pendingInvitation.user_data?.last_name || last_name || null,
-            phone: pendingInvitation.user_data?.phone || null,
-            job_title: pendingInvitation.user_data?.job_title || null,
-            department: pendingInvitation.user_data?.department || null,
-            location: pendingInvitation.user_data?.location || null,
-            date_of_birth: pendingInvitation.user_data?.date_of_birth || null,
+            first_name:
+              (typeof ud?.first_name === 'string' ? ud.first_name : null) ||
+              first_name ||
+              (typeof meta.first_name === 'string' ? meta.first_name : null),
+            last_name:
+              (typeof ud?.last_name === 'string' ? ud.last_name : null) ||
+              last_name ||
+              (typeof meta.last_name === 'string' ? meta.last_name : null),
+            phone: typeof ud?.phone === 'string' ? ud.phone : null,
+            job_title: typeof ud?.job_title === 'string' ? ud.job_title : null,
+            department: typeof ud?.department === 'string' ? ud.department : null,
+            location: typeof ud?.location === 'string' ? ud.location : null,
+            date_of_birth: typeof ud?.date_of_birth === 'string' ? ud.date_of_birth : null,
           };
 
-          console.log('Applying invitation metadata to user:', invitationMetadata);
-          console.log('Company ID type and value:', typeof pendingInvitation.company_id, pendingInvitation.company_id);
-          console.log('Company name:', companyName);
-
-          // Update the user's public_metadata in Clerk with the invitation data
-          try {
-            await clerkClient.users.updateUser(id, {
-              publicMetadata: invitationMetadata
+          if (roleFromRow && roleFromMeta && roleFromRow !== roleFromMeta) {
+            console.warn('Invitation role mismatch (DB vs Clerk metadata); using DB row:', {
+              roleFromRow,
+              roleFromMeta,
             });
-            console.log('Successfully updated user public_metadata in Clerk');
-          } catch (clerkError) {
-            console.error('Error updating user public_metadata in Clerk:', clerkError);
-            // Continue even if Clerk update fails
           }
 
-          // Create user in Supabase with invitation metadata
-          console.log('About to insert user with company_name:', invitationMetadata.company_name);
-          console.log('Full insert data:', {
-            user_id: id,
-            email: email,
-            first_name: invitationMetadata.first_name,
-            last_name: invitationMetadata.last_name,
-            role: invitationMetadata.role,
-            company_id: invitationMetadata.company_id,
-            company_name: invitationMetadata.company_name,
-            phone: invitationMetadata.phone,
-            job_title: invitationMetadata.job_title,
-            department: invitationMetadata.department,
-            location: invitationMetadata.location,
-            date_of_birth: invitationMetadata.date_of_birth,
-            is_active: true,
-            profile_completed: false,
+          console.log('Provisioning invited user with resolved role:', resolvedRole, {
+            hadPendingRow: Boolean(pendingInvitation),
+            metaRole: meta.role,
           });
-          
+
+          try {
+            await clerkClient.users.updateUser(id, {
+              publicMetadata: invitationMetadata,
+            });
+            console.log('Successfully synced public_metadata in Clerk');
+          } catch (clerkError) {
+            console.error('Error updating user public_metadata in Clerk:', clerkError);
+          }
+
           const { data: user, error: userError } = await supabase
-            .from('users') // Changed back to 'users' - this is the correct table name
+            .from('users')
             .insert({
               user_id: id,
-              email: email,
+              email: emailNorm,
               first_name: invitationMetadata.first_name,
               last_name: invitationMetadata.last_name,
-              role: invitationMetadata.role,
-              company_id: invitationMetadata.company_id, // This should be a UUID
-              company_name: invitationMetadata.company_name, // Store company name
+              role: resolvedRole,
+              company_id: resolvedCompanyId,
+              company_name: companyName,
               phone: invitationMetadata.phone,
               job_title: invitationMetadata.job_title,
               department: invitationMetadata.department,
               location: invitationMetadata.location,
               date_of_birth: invitationMetadata.date_of_birth,
               is_active: true,
-              profile_completed: false, // Will be completed when they fill out profile
+              profile_completed: false,
             })
             .select()
             .single();
 
           if (userError) {
             console.error('Error creating user in Supabase:', userError);
-            console.error('Error details:', JSON.stringify(userError, null, 2));
             return NextResponse.json({ error: 'Failed to create user in Supabase' }, { status: 500 });
           }
 
-          console.log('User created successfully in Supabase:', user);
-          console.log('User data returned from insert:', JSON.stringify(user, null, 2));
+          console.log('User created from invitation:', user);
 
-          // Mark invitation as accepted
-          const { error: updateError } = await supabase
-            .from('invitations')
-            .update({
-              status: 'accepted',
-              accepted_at: new Date().toISOString(),
-            })
-            .eq('id', pendingInvitation.id);
+          const invitationRowId = pendingInvitation?.id;
+          if (invitationRowId) {
+            const { error: updateError } = await supabase
+              .from('invitations')
+              .update({
+                status: 'accepted',
+                accepted_at: new Date().toISOString(),
+              })
+              .eq('id', invitationRowId);
 
-          if (updateError) {
-            console.error('Error updating invitation status:', updateError);
-            // Don't fail the whole process if this fails
+            if (updateError) {
+              console.error('Error updating invitation status:', updateError);
+            }
           } else {
-            console.log('Invitation marked as accepted successfully');
-          }
+            const { error: updByEmail } = await supabase
+              .from('invitations')
+              .update({
+                status: 'accepted',
+                accepted_at: new Date().toISOString(),
+              })
+              .ilike('email', emailNorm)
+              .eq('status', 'pending');
 
-          console.log('User created successfully from invitation with correct role and company:', user);
-          
+            if (updByEmail) {
+              console.error('Error marking invitation accepted by email:', updByEmail);
+            }
+          }
         } else {
-          // No invitation found - this is a regular signup
-          console.log('Creating regular user (no invitation found):', { id, email, first_name, last_name });
-          
-          const { data: user, error: userError } = await supabase
-            .from('users') // Changed back to 'users' - this is the correct table name
-            .insert({
-              user_id: id,
-              email: email,
-              first_name: first_name || null,
-              last_name: last_name || null,
-              role: 'trainee', // Default role for regular signups
-              is_active: true,
-              profile_completed: false,
-            })
+          console.log('Creating regular user (no invitation signals):', {
+            id,
+            email: emailNorm,
+            first_name,
+            last_name,
+          });
+
+          const { data: user, error: userError } = await supabase.from('users').insert({
+            user_id: id,
+            email: emailNorm,
+            first_name: first_name || null,
+            last_name: last_name || null,
+            role: 'trainee',
+            is_active: true,
+            profile_completed: false,
+          })
             .select()
             .single();
 

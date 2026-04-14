@@ -11,6 +11,7 @@ export const invitations = pgTable('invitations', {
   invited_by: varchar('invited_by').references(() => users.userId).notNull(),
   status: text('status', { enum: ['pending', 'accepted', 'expired', 'cancelled'] }).default('pending'),
   token: text('token').unique().notNull(), // Unique invitation token
+  clerkInvitationId: text('clerk_invitation_id'), // Clerk invitation id (inv_...)
   expires_at: timestamp('expires_at').notNull(),
   accepted_at: timestamp('accepted_at'),
   created_at: timestamp('created_at').defaultNow(),

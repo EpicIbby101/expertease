@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthForApi } from '@/lib/auth';
+import { normalizeInviteEmail } from '@/lib/invitation-role';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,12 +38,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Email parameter is required' }, { status: 400 });
     }
 
+    const emailNorm = normalizeInviteEmail(email);
+    if (!emailNorm) {
+      return NextResponse.json({ error: 'Email parameter is required' }, { status: 400 });
+    }
+
     // Check if user already exists
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email)
-      .single();
+      .ilike('email', emailNorm)
+      .maybeSingle();
 
     if (existingUser) {
       return NextResponse.json({ exists: true, reason: 'user_exists' });
@@ -52,9 +58,9 @@ export async function GET(request: NextRequest) {
     const { data: existingInvitation } = await supabase
       .from('invitations')
       .select('id')
-      .eq('email', email)
+      .ilike('email', emailNorm)
       .eq('status', 'pending')
-      .single();
+      .maybeSingle();
 
     if (existingInvitation) {
       return NextResponse.json({ exists: true, reason: 'invitation_pending' });

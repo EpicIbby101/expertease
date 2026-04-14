@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthForApi } from '@/lib/auth';
+import { normalizeInviteEmail } from '@/lib/invitation-role';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,7 +33,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and role are required' }, { status: 400 });
     }
 
-    console.log('Accepting invitation for user:', { userId, email, role });
+    const emailNorm = normalizeInviteEmail(email);
+
+    // Authoritative role / company from DB (client body can drift; webhook may have used wrong role once)
+    const { data: inviteRows } = await supabase
+      .from('invitations')
+      .select('role, company_id, user_data')
+      .ilike('email', emailNorm)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const inviteRow = inviteRows?.[0];
+    const authoritativeRole = inviteRow?.role ?? role;
+    const authoritativeCompanyId = inviteRow?.company_id ?? company_id ?? null;
+    const ud = inviteRow?.user_data as { company_name?: string } | null | undefined;
+    const authoritativeCompanyName =
+      company_name || ud?.company_name || null;
+
+    console.log('Accepting invitation for user:', {
+      userId,
+      email: emailNorm,
+      roleFromClient: role,
+      authoritativeRole,
+      authoritativeCompanyId,
+    });
 
     // Check if user already exists in Supabase
     const { data: existingUser, error: userCheckError } = await supabase
@@ -50,19 +74,20 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       console.log('Updating existing user:', existingUser.id);
-      
-      // Verify that the existing user has the correct role and company from the invitation
-      if (existingUser.role !== role) {
-        console.warn(`Role mismatch: existing user has role '${existingUser.role}', invitation has '${role}'`);
+
+      if (existingUser.role !== authoritativeRole) {
+        console.warn(
+          `Correcting role: was '${existingUser.role}', invitation says '${authoritativeRole}'`,
+        );
       }
-      if (existingUser.company_id !== company_id) {
-        console.warn(`Company mismatch: existing user has company '${existingUser.company_id}', invitation has '${company_id}'`);
-      }
-      
-      // Update existing user with profile data
+
+      // Update existing user — always apply invitation role/company (fixes wrong webhook default)
       const { data: updatedUser, error: updateError } = await supabase
         .from('users')
         .update({
+          email: emailNorm,
+          role: authoritativeRole,
+          company_id: authoritativeCompanyId,
           first_name: first_name || null,
           last_name: last_name || null,
           phone: phone || null,
@@ -70,7 +95,7 @@ export async function POST(request: NextRequest) {
           department: department || null,
           location: location || null,
           date_of_birth: date_of_birth || null,
-          company_name: company_name || null, // Update company name
+          company_name: authoritativeCompanyName,
           profile_completed: true,
         })
         .eq('user_id', userId)
@@ -91,12 +116,12 @@ export async function POST(request: NextRequest) {
         .from('users')
         .insert({
           user_id: userId,
-          email: email,
+          email: emailNorm,
           first_name: first_name || null,
           last_name: last_name || null,
-          role: role,
-          company_id: company_id || null,
-          company_name: company_name || null, // Include company name
+          role: authoritativeRole,
+          company_id: authoritativeCompanyId,
+          company_name: authoritativeCompanyName,
           phone: phone || null,
           job_title: job_title || null,
           department: department || null,
@@ -123,7 +148,7 @@ export async function POST(request: NextRequest) {
         status: 'accepted',
         accepted_at: new Date().toISOString(),
       })
-      .eq('email', email)
+      .ilike('email', emailNorm)
       .eq('status', 'pending');
 
     if (invitationError) {
