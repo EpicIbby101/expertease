@@ -575,6 +575,8 @@ export async function getTraineeLessonForCourse(
   signedResourceUrl: string | null;
   resourceSignError: string | null;
   nextLesson: { id: string; title: string } | null;
+  /** True only when every lesson in the course is marked complete (not just the current one). */
+  courseFullyCompleted: boolean;
 } | null> {
   const detail = await getTraineeCourseDetail(courseIdOrSlug, userId);
   if (!detail) return null;
@@ -588,6 +590,9 @@ export async function getTraineeLessonForCourse(
 
   const lesson = ordered[idx];
   if (!lesson) return null;
+
+  const courseFullyCompleted =
+    ordered.length > 0 && ordered.every((l) => l.completed);
 
   let signedResourceUrl: string | null = null;
   let resourceSignError: string | null = null;
@@ -613,5 +618,6 @@ export async function getTraineeLessonForCourse(
     signedResourceUrl,
     resourceSignError,
     nextLesson,
+    courseFullyCompleted,
   };
 }

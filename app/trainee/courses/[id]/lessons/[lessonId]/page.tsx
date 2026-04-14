@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MarkLessonCompleteButton } from '@/components/MarkLessonCompleteButton';
 import { getTraineeLessonForCourse } from '@/lib/courses';
+import { getTraineeQuizQuestionsForLesson } from '@/lib/quiz';
+import { LessonQuizRunner } from '@/components/LessonQuizRunner';
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import {
@@ -35,7 +37,9 @@ export default async function TraineeLessonPage({
     notFound();
   }
 
-  const { course, lesson, signedResourceUrl, resourceSignError, nextLesson } = data;
+  const { course, lesson, signedResourceUrl, resourceSignError, nextLesson, courseFullyCompleted } = data;
+  const quizQuestions =
+    lesson.type === 'quiz' ? await getTraineeQuizQuestionsForLesson(lesson.id) : [];
   const isPdf =
     lesson.resourcePath?.toLowerCase().endsWith('.pdf') ?? false;
   const hasFilePointer = Boolean(lesson.resourceBucket && lesson.resourcePath);
@@ -105,15 +109,19 @@ export default async function TraineeLessonPage({
               </div>
             </div>
             <div className="w-full shrink-0 rounded-xl border border-white/40 bg-white/95 p-3 shadow-lg backdrop-blur-sm sm:w-auto sm:pt-0">
-              <MarkLessonCompleteButton
-                lessonId={lesson.id}
-                initialCompleted={lesson.completed}
-                courseId={course.id}
-                nextLesson={nextLesson}
-              />
+          <MarkLessonCompleteButton
+            lessonId={lesson.id}
+            initialCompleted={lesson.completed}
+            courseId={course.id}
+            nextLesson={nextLesson}
+          />
             </div>
           </div>
         </div>
+
+        {lesson.type === 'quiz' ? (
+          <LessonQuizRunner lessonId={lesson.id} questions={quizQuestions} />
+        ) : null}
 
         {lesson.bodyMarkdown ? (
           <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-white">
@@ -224,11 +232,11 @@ export default async function TraineeLessonPage({
               </Button>
             </CardContent>
           </Card>
-        ) : lesson.completed && !nextLesson ? (
+        ) : lesson.completed && !nextLesson && courseFullyCompleted ? (
           <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50/50">
             <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-gray-800">
-                You&apos;ve finished the last lesson in this course — amazing work! 🏆 Review the curriculum or
+                You&apos;ve completed every lesson in this course — amazing work! 🏆 Review the curriculum or
                 browse more courses anytime.
               </p>
               <Button
@@ -239,6 +247,21 @@ export default async function TraineeLessonPage({
                 <Link href={`/trainee/courses/${course.id}#lessons`}>
                   <ListOrdered className="mr-2 h-4 w-4" />
                   Back to curriculum
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : lesson.completed && !nextLesson && !courseFullyCompleted ? (
+          <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/40">
+            <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-gray-800">
+                This is the last lesson in the list, but the course isn&apos;t finished until every lesson is
+                marked complete. Check the curriculum for any still open.
+              </p>
+              <Button asChild variant="outline" className="border-2 border-amber-300 font-semibold">
+                <Link href={`/trainee/courses/${course.id}#lessons`}>
+                  <ListOrdered className="mr-2 h-4 w-4" />
+                  View curriculum
                 </Link>
               </Button>
             </CardContent>
