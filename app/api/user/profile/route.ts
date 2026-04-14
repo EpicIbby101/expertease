@@ -28,7 +28,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user profile with company information
     const { data: user, error } = await supabase
       .from('users')
       .select(`
@@ -47,9 +46,10 @@ export async function GET() {
         is_active,
         role,
         company_id,
-        companies(name)
+        company_name,
+        date_of_birth
       `)
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -61,14 +61,7 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Transform the data to include company name
-    const profile = {
-      ...user,
-      company_name: user.companies?.[0]?.name || null,
-      companies: undefined // Remove the nested object
-    };
-
-    return NextResponse.json(profile);
+    return NextResponse.json(user);
   } catch (error) {
     console.error('Error in profile GET API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -80,6 +73,26 @@ export async function PUT(request: NextRequest) {
     const { userId } = await getAuthForApi();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: existing, error: existingErr } = await supabase
+      .from('users')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+
+    if (existingErr || !existing) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (existing.role === 'trainee') {
+      return NextResponse.json(
+        {
+          error: 'Trainee profiles cannot be edited here',
+          details: 'Ask your company administrator to update your details.',
+        },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -124,7 +137,7 @@ export async function PUT(request: NextRequest) {
         profile_completed: profileCompleted,
         last_active_at: new Date().toISOString()
       })
-      .eq('id', userId)
+      .eq('user_id', userId)
       .select()
       .single();
 

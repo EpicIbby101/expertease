@@ -1,5 +1,5 @@
 // lib/auth.ts
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { currentUser } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -20,7 +20,8 @@ export async function getAuthForApi() {
 
 export async function getUserRole(): Promise<'site_admin' | 'company_admin' | 'trainee' | null> {
   try {
-    const { userId } = await auth();
+    const user = await currentUser();
+    const userId = user?.id;
     if (!userId) return null;
 
     const { data, error } = await supabase
@@ -43,7 +44,8 @@ export async function getUserRole(): Promise<'site_admin' | 'company_admin' | 't
 
 export async function getUserCompany() {
   try {
-    const { userId } = await auth();
+    const user = await currentUser();
+    const userId = user?.id;
     if (!userId) return null;
 
     const { data, error } = await supabase
@@ -79,7 +81,8 @@ export async function hasRole(requiredRole: 'site_admin' | 'company_admin' | 'tr
 
 export async function canManageUser(targetUserId: string) {
   try {
-    const { userId } = await auth();
+    const user = await currentUser();
+    const userId = user?.id;
     if (!userId) return false;
 
     const userRole = await getUserRole();

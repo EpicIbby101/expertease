@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { auth } from '@clerk/nextjs/server';
-import { getUserCompany } from '@/lib/auth';
+import { getAuthForApi } from '@/lib/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,26 +9,23 @@ const supabase = createClient(
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    
+    const { userId } = await getAuthForApi();
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's company
-    const userCompany = await getUserCompany();
-    if (!userCompany?.company_id) {
-      return NextResponse.json({ error: 'User not associated with a company' }, { status: 400 });
-    }
-
-    // Check if user is company admin
-    const { data: user } = await supabase
+    const { data: adminRow, error: adminError } = await supabase
       .from('users')
-      .select('role')
+      .select('role, company_id')
       .eq('user_id', userId)
       .single();
 
-    if (!user || user.role !== 'company_admin') {
+    if (adminError || !adminRow?.company_id) {
+      return NextResponse.json({ error: 'User not associated with a company' }, { status: 400 });
+    }
+
+    if (adminRow.role !== 'company_admin') {
       return NextResponse.json({ error: 'Forbidden - Company admin access required' }, { status: 403 });
     }
 
@@ -50,7 +46,7 @@ export async function GET(request: NextRequest) {
         created_at,
         last_active_at
       `)
-      .eq('company_id', userCompany.company_id)
+      .eq('company_id', adminRow.company_id)
       .eq('role', 'trainee')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });

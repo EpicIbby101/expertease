@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Users, Plus, Trash2, Mail, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
+import { CompanyTraineeInvites } from '@/components/CompanyTraineeInvites';
 
 interface Trainee {
   id: string;
@@ -94,6 +95,8 @@ export function TraineeManager({ trainees, companyId, companyName }: TraineeMana
 
   return (
     <div className="space-y-6">
+      {companyId ? <CompanyTraineeInvites companyId={companyId} /> : null}
+
       {/* Create Trainee Section */}
       <Card>
         <CardHeader>

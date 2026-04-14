@@ -27,6 +27,7 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { CompanyTraineeInvites } from '@/components/CompanyTraineeInvites';
 
 interface Trainee {
   id: string;
@@ -73,6 +74,7 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
   const [performanceFilter, setPerformanceFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'score'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [pendingInvitesRefresh, setPendingInvitesRefresh] = useState(0);
 
   useEffect(() => {
     fetchTrainees();
@@ -128,6 +130,7 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
           message: `Welcome to ${companyName}! You've been invited to join our training program.`
         });
         fetchTrainees();
+        setPendingInvitesRefresh((n) => n + 1);
       } else {
         toast.error(data.error || 'Failed to invite trainee');
       }
@@ -214,6 +217,7 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
 
   const handleRefresh = () => {
     fetchTrainees();
+    setPendingInvitesRefresh((n) => n + 1);
   };
 
   const filteredAndSortedTrainees = trainees
@@ -327,6 +331,8 @@ export function CompanyTraineeManager({ companyId, companyName }: CompanyTrainee
           </Button>
         </div>
       </div>
+
+      <CompanyTraineeInvites companyId={companyId} refreshTrigger={pendingInvitesRefresh} />
 
       {/* Search and Filter Controls */}
       <Card>

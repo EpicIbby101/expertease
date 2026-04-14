@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { UserButton } from '@clerk/nextjs';
 import { getUserRole } from '@/lib/auth';
 
@@ -46,6 +47,27 @@ export default async function TraineeLayout({
           </div>
         </div>
       </header>
+
+      <nav className="border-b border-gray-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap gap-1 px-4 py-2 sm:px-6 lg:px-8">
+          {(
+            [
+              ['Dashboard', '/trainee/dashboard'],
+              ['Courses', '/trainee/courses'],
+              ['My details', '/trainee/profile'],
+              ['Support', '/trainee/support'],
+            ] as const
+          ).map(([label, href]) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </nav>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
