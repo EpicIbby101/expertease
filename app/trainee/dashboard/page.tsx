@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { BookOpen, Award, Clock, CheckCircle, Play, Target, TrendingUp, User, Users, Activity, ArrowRight, Calendar, Sparkles, Trophy, Rocket, Star, Zap, HelpCircle } from 'lucide-react';
+import { BookOpen, Award, CheckCircle, Play, Target, TrendingUp, Users, ArrowRight, Sparkles, Trophy, Rocket, Star, Zap } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs/server';
 import TraineeDashboardHeader from '@/components/TraineeDashboardHeader';
+import { getTraineeDashboardLearning } from '@/lib/courses';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +17,6 @@ const supabase = createClient(
 
 async function getTraineeStats(userId: string) {
   try {
-    // Get user details and verify they're a trainee
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, email, first_name, last_name, role, company_id, company_name, created_at, last_active_at')
@@ -27,78 +27,20 @@ async function getTraineeStats(userId: string) {
       return null;
     }
 
-    // For now, we'll simulate course data since we don't have a courses/training_progress table yet
-    const enrolledCourses = 4;
-    const completedCourses = Math.floor(Math.random() * enrolledCourses) + 1;
-    const inProgressCourses = enrolledCourses - completedCourses;
-    
-    const baseScore = 70 + Math.random() * 25;
-    const completionBonus = (completedCourses / enrolledCourses) > 0.75 ? 5 : 0;
-    const averageScore = Math.min(100, Math.round((baseScore + completionBonus) * 10) / 10);
-
-    const courseProgress = [
-      {
-        courseId: '1',
-        courseName: 'Safety Training Fundamentals',
-        progress: completedCourses >= 1 ? 100 : completedCourses >= 0 ? Math.floor(Math.random() * 80) + 10 : 0,
-        status: completedCourses >= 1 ? 'completed' : completedCourses >= 0 ? 'in_progress' : 'not_started',
-        score: completedCourses >= 1 ? Math.round((78 + Math.random() * 20) * 10) / 10 : null,
-        enrolledDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        completedDate: completedCourses >= 1 ? new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() : null
-      },
-      {
-        courseId: '2',
-        courseName: 'Equipment Handling & Maintenance',
-        progress: completedCourses >= 2 ? 100 : completedCourses >= 1 ? Math.floor(Math.random() * 80) + 10 : 0,
-        status: completedCourses >= 2 ? 'completed' : completedCourses >= 1 ? 'in_progress' : 'not_started',
-        score: completedCourses >= 2 ? Math.round((82 + Math.random() * 15) * 10) / 10 : null,
-        enrolledDate: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-        completedDate: completedCourses >= 2 ? new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() : null
-      },
-      {
-        courseId: '3',
-        courseName: 'Emergency Procedures & Response',
-        progress: completedCourses >= 3 ? 100 : completedCourses >= 2 ? Math.floor(Math.random() * 80) + 10 : 0,
-        status: completedCourses >= 3 ? 'completed' : completedCourses >= 2 ? 'in_progress' : 'not_started',
-        score: completedCourses >= 3 ? Math.round((85 + Math.random() * 12) * 10) / 10 : null,
-        enrolledDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-        completedDate: completedCourses >= 3 ? new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() : null
-      },
-      {
-        courseId: '4',
-        courseName: 'Quality Standards',
-        progress: completedCourses >= 4 ? 100 : completedCourses >= 3 ? Math.floor(Math.random() * 80) + 10 : 0,
-        status: completedCourses >= 4 ? 'completed' : completedCourses >= 3 ? 'in_progress' : 'not_started',
-        score: completedCourses >= 4 ? Math.round((78 + Math.random() * 20) * 10) / 10 : null,
-        enrolledDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-        completedDate: completedCourses >= 4 ? new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() : null
-      }
-    ];
-
-    const overallCompletionRate = enrolledCourses > 0 
-      ? Math.round((completedCourses / enrolledCourses) * 100 * 10) / 10
-      : 0;
-
-    const daysSinceLastLogin = user.last_active_at 
-      ? Math.floor((new Date().getTime() - new Date(user.last_active_at).getTime()) / (1000 * 60 * 60 * 24))
-      : 30;
-    
-    let engagementScore;
-    if (daysSinceLastLogin <= 1) engagementScore = 90 + Math.random() * 10;
-    else if (daysSinceLastLogin <= 7) engagementScore = 70 + Math.random() * 20;
-    else if (daysSinceLastLogin <= 30) engagementScore = 40 + Math.random() * 30;
-    else engagementScore = 10 + Math.random() * 30;
+    const learning = await getTraineeDashboardLearning(userId);
 
     return {
       stats: {
-        enrolledCourses,
-        completedCourses,
-        inProgressCourses,
-        averageScore,
-        overallCompletionRate,
-        engagementScore: Math.round(engagementScore * 10) / 10
+        enrolledCourses: learning.enrolledCourses,
+        completedCourses: learning.completedCourses,
+        inProgressCourses: learning.inProgressCourses,
+        lessonCompletionRate: learning.lessonCompletionRate,
+        lessonsCompleted: learning.lessonsCompleted,
+        lessonsTotal: learning.lessonsTotal,
+        overallCompletionRate: learning.overallCourseCompletionRate,
+        engagementScore: learning.engagementScore,
       },
-      courseProgress
+      courseProgress: learning.courseProgress,
     };
   } catch (error) {
     console.error('Error fetching trainee stats:', error);
@@ -107,11 +49,12 @@ async function getTraineeStats(userId: string) {
 }
 
 function getMotivationalMessage(completionRate: number, engagementScore: number) {
-  if (completionRate >= 100) return { message: "🌟 Outstanding! You're a learning champion!", emoji: "🏆" };
-  if (completionRate >= 75) return { message: "🎉 Amazing progress! Keep up the momentum!", emoji: "⚡" };
-  if (completionRate >= 50) return { message: "🚀 You're halfway there! You've got this!", emoji: "💪" };
-  if (completionRate >= 25) return { message: "⭐ Great start! Every journey begins with a single step!", emoji: "🌱" };
-  return { message: "🌱 Ready to begin your learning adventure?", emoji: "📚" };
+  if (completionRate >= 100) return { message: "🌟 Outstanding! You're a learning champion!", emoji: '🏆' };
+  if (completionRate >= 75) return { message: '🎉 Amazing progress! Keep up the momentum!', emoji: '⚡' };
+  if (completionRate >= 50) return { message: "🚀 You're halfway there! You've got this!", emoji: '💪' };
+  if (completionRate >= 25) return { message: '⭐ Great start! Every journey begins with a single step!', emoji: '🌱' };
+  if (engagementScore >= 70) return { message: "🔥 You're showing up — keep building on it!", emoji: '📚' };
+  return { message: '🌱 Ready to begin your learning adventure?', emoji: '📚' };
 }
 
 export default async function TraineeDashboard() {
@@ -135,9 +78,11 @@ export default async function TraineeDashboard() {
     enrolledCourses: 0,
     completedCourses: 0,
     inProgressCourses: 0,
-    averageScore: 0,
+    lessonCompletionRate: 0,
+    lessonsCompleted: 0,
+    lessonsTotal: 0,
     overallCompletionRate: 0,
-    engagementScore: 0
+    engagementScore: 0,
   };
 
   const courseProgress = data?.courseProgress || [];
@@ -239,11 +184,15 @@ export default async function TraineeDashboard() {
                 </div>
                 <span className="text-3xl">⭐</span>
               </div>
-              <CardTitle className="text-gray-700 mt-4">Avg Score</CardTitle>
+              <CardTitle className="text-gray-700 mt-4">Lesson progress</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-purple-600 mb-1">{stats.averageScore}%</div>
-              <p className="text-sm text-gray-600">You're crushing it! 🚀</p>
+              <div className="text-3xl font-bold text-purple-600 mb-1">{stats.lessonCompletionRate}%</div>
+              <p className="text-sm text-gray-600">
+                {stats.lessonsTotal > 0
+                  ? `${stats.lessonsCompleted} of ${stats.lessonsTotal} lessons done`
+                  : 'No lessons yet — check back soon'}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -272,7 +221,9 @@ export default async function TraineeDashboard() {
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  {stats.completedCourses} of {stats.enrolledCourses} courses completed
+                  {stats.enrolledCourses > 0
+                    ? `${stats.completedCourses} of ${stats.enrolledCourses} courses fully completed`
+                    : 'No published courses yet'}
                 </p>
               </div>
               
@@ -288,7 +239,11 @@ export default async function TraineeDashboard() {
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  {stats.engagementScore >= 80 ? "🔥 You're on fire!" : stats.engagementScore >= 60 ? "💪 Great momentum!" : "📚 Keep learning!"}
+                  {stats.engagementScore >= 80
+                    ? "🔥 Based on your recent activity on the platform"
+                    : stats.engagementScore >= 55
+                      ? '💪 Steady — a little activity goes a long way'
+                      : '📚 Jump back in when you can — we’ll be here'}
                 </p>
               </div>
             </CardContent>
@@ -304,34 +259,38 @@ export default async function TraineeDashboard() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-teal-100">
+              <div className="flex items-center justify-between rounded-xl border border-teal-100 bg-white p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100">
                     <TrendingUp className="h-5 w-5 text-teal-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Average Score</p>
-                    <p className="text-2xl font-bold text-teal-600">{stats.averageScore}%</p>
-                  </div>
-                </div>
-                <span className="text-3xl">
-                  {stats.averageScore >= 90 ? "🌟" : stats.averageScore >= 80 ? "⭐" : "💫"}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-teal-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
-                    <Zap className="h-5 w-5 text-pink-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Active Streak</p>
-                    <p className="text-2xl font-bold text-pink-600">
-                      {stats.engagementScore >= 80 ? "🔥" : stats.engagementScore >= 60 ? "⚡" : "✨"}
+                    <p className="text-sm text-gray-600">Lessons completed</p>
+                    <p className="text-2xl font-bold text-teal-600">
+                      {stats.lessonsTotal > 0 ? `${stats.lessonsCompleted} / ${stats.lessonsTotal}` : '—'}
                     </p>
                   </div>
                 </div>
-                <span className="text-3xl">🎯</span>
+                <span className="text-3xl" aria-hidden>
+                  {stats.lessonCompletionRate >= 90 ? '🌟' : stats.lessonCompletionRate >= 50 ? '⭐' : '💫'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-xl border border-teal-100 bg-white p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pink-100">
+                    <Zap className="h-5 w-5 text-pink-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Lesson progress</p>
+                    <p className="text-2xl font-bold text-pink-600">
+                      {stats.lessonsTotal > 0 ? `${stats.lessonCompletionRate}%` : '—'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-3xl" aria-hidden>
+                  🎯
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -370,70 +329,105 @@ export default async function TraineeDashboard() {
               </div>
             ) : (
               <div className="space-y-4">
-                {courseProgress.map((course, index) => {
+                {courseProgress.map((course) => {
                   const statusColors = {
-                    completed: { bg: 'from-green-500 to-emerald-500', text: 'text-green-700', border: 'border-green-200', emoji: '✅' },
-                    in_progress: { bg: 'from-orange-500 to-amber-500', text: 'text-orange-700', border: 'border-orange-200', emoji: '🔥' },
-                    not_started: { bg: 'from-gray-400 to-gray-500', text: 'text-gray-700', border: 'border-gray-200', emoji: '📋' }
+                    completed: {
+                      bg: 'from-green-500 to-emerald-500',
+                      text: 'text-green-700',
+                      border: 'border-green-200',
+                      rowBg: 'from-white to-green-50/90',
+                      emoji: '✅',
+                    },
+                    in_progress: {
+                      bg: 'from-orange-500 to-amber-500',
+                      text: 'text-orange-700',
+                      border: 'border-orange-200',
+                      rowBg: 'from-white to-orange-50/90',
+                      emoji: '🔥',
+                    },
+                    not_started: {
+                      bg: 'from-gray-400 to-gray-500',
+                      text: 'text-gray-700',
+                      border: 'border-gray-200',
+                      rowBg: 'from-white to-gray-50/90',
+                      emoji: '📋',
+                    },
                   };
-                  const colors = statusColors[course.status as keyof typeof statusColors] || statusColors.not_started;
+                  const colors =
+                    statusColors[course.status as keyof typeof statusColors] || statusColors.not_started;
 
                   return (
-                    <div 
-                      key={course.courseId} 
-                      className={`p-5 rounded-xl border-2 ${colors.border} bg-gradient-to-r from-white to-${colors.bg.split(' ')[0].replace('from-', '')}-50/30 hover:shadow-lg transition-all`}
+                    <div
+                      key={course.courseId}
+                      className={`rounded-xl border-2 p-5 ${colors.border} bg-gradient-to-r ${colors.rowBg} transition-all hover:shadow-lg`}
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className={`w-12 h-12 bg-gradient-to-br ${colors.bg} rounded-xl flex items-center justify-center shadow-md flex-shrink-0`}>
-                            <span className="text-2xl">{colors.emoji}</span>
+                      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex min-w-0 flex-1 items-start gap-3">
+                          <div
+                            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-md ${colors.bg}`}
+                          >
+                            <span className="text-2xl" aria-hidden>
+                              {colors.emoji}
+                            </span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1">{course.courseName}</h4>
-                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="mb-1 font-bold text-gray-900">{course.courseName}</h4>
+                            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
                               <Badge variant="outline" className={colors.border}>
-                                {course.status === 'completed' ? 'Completed' : course.status === 'in_progress' ? 'In Progress' : 'Not Started'}
+                                {course.status === 'completed'
+                                  ? 'Completed'
+                                  : course.status === 'in_progress'
+                                    ? 'In progress'
+                                    : 'Not started'}
                               </Badge>
-                              {course.score && (
-                                <span className={`font-semibold ${colors.text}`}>
-                                  Score: {course.score}%
+                              {course.enrolledDate && (
+                                <span className="text-xs text-gray-500">
+                                  Activity from {new Date(course.enrolledDate).toLocaleDateString()}
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
-                        {course.status === 'in_progress' && (
-                          <Link href="/trainee/courses">
-                            <Button size="sm" variant="default" className="gap-2">
-                              <Play className="h-4 w-4" />
-                              Continue
-                            </Button>
-                          </Link>
-                        )}
-                        {course.status === 'completed' && (
-                          <Link href="/trainee/courses">
-                            <Button size="sm" variant="outline" className="gap-2">
-                              <CheckCircle className="h-4 w-4" />
-                              Review
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                      
-                      {course.status !== 'not_started' && (
-                        <div className="mt-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Progress</span>
-                            <span className="text-sm font-bold text-gray-900">{course.progress}%</span>
-                          </div>
-                          <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full bg-gradient-to-r ${colors.bg} rounded-full transition-all duration-500 shadow-sm`}
-                              style={{ width: `${course.progress}%` }}
-                            />
-                          </div>
+                        <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                          {course.status === 'not_started' && (
+                            <Link href={`/trainee/courses/${course.courseId}`}>
+                              <Button size="sm" className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-600">
+                                <Play className="h-4 w-4" />
+                                Start
+                              </Button>
+                            </Link>
+                          )}
+                          {course.status === 'in_progress' && (
+                            <Link href={`/trainee/courses/${course.courseId}`}>
+                              <Button size="sm" variant="default" className="gap-2">
+                                <Play className="h-4 w-4" />
+                                Continue
+                              </Button>
+                            </Link>
+                          )}
+                          {course.status === 'completed' && (
+                            <Link href={`/trainee/courses/${course.courseId}`}>
+                              <Button size="sm" variant="outline" className="gap-2">
+                                <CheckCircle className="h-4 w-4" />
+                                Review
+                              </Button>
+                            </Link>
+                          )}
                         </div>
-                      )}
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Progress</span>
+                          <span className="text-sm font-bold text-gray-900">{course.progress}%</span>
+                        </div>
+                        <div className="relative h-3 w-full overflow-hidden rounded-full bg-gray-200">
+                          <div
+                            className={`h-full rounded-full bg-gradient-to-r shadow-sm transition-all duration-500 ${colors.bg}`}
+                            style={{ width: `${course.progress}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
